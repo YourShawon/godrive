@@ -1,0 +1,39 @@
+{
+  "name": "godrive",
+  "version": "1.0.0",
+  "description": "A car rental app built with Node.js for user management, car listing, bookings, and reviews.",
+  "homepage": "https://github.com/YourShawon/godrive",
+  "bugs": {
+    "url": "https://github.com/YourShawon/godrive/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YourShawon/godrive.git"
+  },
+  "license": "MIT",
+  "author": "Moazzem Hossain Shawon",
+  "type": "commonjs",
+  "main": "server.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^6.1.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0"
+  }
+}
