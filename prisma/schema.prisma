@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  email      String  @unique
+  password   String
+  name       String
+  role       Role    @default(CUSTOMER)
+  locationId String? @db.ObjectId
+
+  // User preferences
+  preferredCarTypes CarType[]
+  language          String    @default("en")
+  currency          String    @default("USD")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  location      Location?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  bookings      Booking[]
+  reviews       Review[]
+  wishlist      Wishlist[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Location {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  country String
+  state   String
+  city    String
+  street  String
+  User    User[]
+}
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  token     String   @unique
+  userId    String   @db.ObjectId
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Car {
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  make  String
+  model String
+  year  Int
+  type  CarType
+  color String
+
+  // Car specifications
+  transmission    TransmissionType
+  fuelType        FuelType
+  seats           Int
+  doors           Int
+  airConditioning Boolean          @default(true)
+
+  // Pricing
+  pricePerDay Float
+
+  // Availability
+  isAvailable Boolean @default(true)
+  location    String
+
+  // Images and description
+  images      String[]
+  description String?
+  features    String[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bookings Booking[]
+  reviews  Review[]
+  wishlist Wishlist[]
+
+  @@map("cars")
+}
+
+model Booking {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  carId  String @db.ObjectId
+
+  // Booking details
+  startDate  DateTime
+  endDate    DateTime
+  totalDays  Int
+  totalPrice Float
+  status     BookingStatus @default(PENDING)
+
+  // Payment
+  paymentId     String?
+  paymentStatus PaymentStatus @default(PENDING)
+
+  // Additional info
+  notes String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car     Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  payment Payment?
+
+  @@map("bookings")
+}
+
+model Payment {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId String @unique @db.ObjectId
+
+  // Payment details
+  amount   Float
+  currency String        @default("USD")
+  method   PaymentMethod
+  status   PaymentStatus @default(PENDING)
+
+  // External payment info
+  stripePaymentIntentId String?
+  refundId              String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Review {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  carId  String @db.ObjectId
+
+  // Review content
+  rating  Int // 1-5 stars
+  title   String?
+  comment String
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car  Car  @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Wishlist {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  carId  String @db.ObjectId
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car  Car  @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  // Ensure unique user-car combination
+  @@unique([userId, carId])
+  @@map("wishlist")
+}
+
+// Enums
+enum Role {
+  CUSTOMER
+  ADMIN
+  SUPPORT
+}
+
+enum CarType {
+  SUV
+  SEDAN
+  HATCHBACK
+  COUPE
+  CONVERTIBLE
+  PICKUP
+  VAN
+}
+
+enum TransmissionType {
+  MANUAL
+  AUTOMATIC
+  CVT
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  PAYPAL
+  STRIPE
+}

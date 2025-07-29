@@ -3,6 +3,7 @@ import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { Request, Response, NextFunction } from "express";
 import { completeSwaggerConfig } from "@docs/index.js";
+import { prisma, checkDatabaseHealth, getDatabaseStatus } from "@config/db.js";
 
 class App {
   public app: express.Application;
@@ -16,21 +17,156 @@ class App {
     this.initializeErrorHandling();
   }
 
-  private initializeMiddlewares() {
+  private async initializeMiddlewares() {
     // Basic Express middlewares
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+
+    // Initialize database connection
+    await this.initializeDatabaseConnection();
+  }
+
+  private async initializeDatabaseConnection() {
+    try {
+      // Connect to database
+      await prisma.$connect();
+      console.log("✅ Database connected successfully");
+
+      // Test the connection with a simple operation (only if connection succeeds)
+      try {
+        await prisma.$runCommandRaw({ ping: 1 });
+        console.log("✅ Database ping test passed");
+      } catch (pingError) {
+        console.warn(
+          "⚠️  Database ping test failed, but connection established"
+        );
+        console.warn(
+          "Ping error:",
+          pingError instanceof Error ? pingError.message : "Unknown error"
+        );
+      }
+
+      // Setup graceful shutdown handlers
+      this.setupGracefulShutdown();
+    } catch (error) {
+      console.error("❌ Database connection failed:", error);
+
+      if (process.env.NODE_ENV === "production") {
+        console.error(
+          "❌ Application will exit due to database connection failure"
+        );
+        process.exit(1);
+      } else {
+        console.warn(
+          "⚠️  Development mode: Continuing without database connection"
+        );
+        console.warn(
+          "⚠️  Database endpoints will return errors until connection is established"
+        );
+      }
+    }
+  }
+
+  private setupGracefulShutdown() {
+    // Handle graceful shutdown
+    const gracefulShutdown = async (signal: string) => {
+      console.log(`\n🔄 Received ${signal}. Starting graceful shutdown...`);
+
+      try {
+        // Close database connection
+        await prisma.$disconnect();
+        console.log("✅ Database connection closed");
+
+        // Exit process
+        console.log("✅ Graceful shutdown completed");
+        process.exit(0);
+      } catch (error) {
+        console.error("❌ Error during graceful shutdown:", error);
+        process.exit(1);
+      }
+    };
+
+    // Listen for termination signals
+    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+    // Handle uncaught exceptions
+    process.on("uncaughtException", async (error) => {
+      console.error("❌ Uncaught Exception:", error);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
+
+    // Handle unhandled promise rejections
+    process.on("unhandledRejection", async (reason, promise) => {
+      console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
   }
 
   private initializeRoutes() {
     // Health check endpoint
-    this.app.get("/health", (req: Request, res: Response) => {
+    this.app.get("/health", async (req: Request, res: Response) => {
+      const dbStatus = getDatabaseStatus();
+      const isDbHealthy = await checkDatabaseHealth();
+
       res.status(200).json({
         status: "success",
         message: "GoDrive API is running",
         timestamp: new Date().toISOString(),
         version: "1.0.0",
+        database: {
+          connected: dbStatus.isConnected,
+          healthy: isDbHealthy,
+          lastChecked: dbStatus.timestamp,
+        },
+        uptime: process.uptime(),
+        memory: {
+          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+          external: Math.round(process.memoryUsage().external / 1024 / 1024),
+        },
       });
+    });
+
+    // Database health check endpoint
+    this.app.get("/health/database", async (req: Request, res: Response) => {
+      try {
+        const isHealthy = await checkDatabaseHealth();
+        const dbStatus = getDatabaseStatus();
+
+        if (isHealthy) {
+          res.status(200).json({
+            status: "success",
+            message: "Database is healthy",
+            database: {
+              connected: dbStatus.isConnected,
+              healthy: isHealthy,
+              lastChecked: dbStatus.timestamp,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          res.status(503).json({
+            status: "error",
+            message: "Database is unhealthy",
+            database: {
+              connected: dbStatus.isConnected,
+              healthy: isHealthy,
+              lastChecked: dbStatus.timestamp,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        res.status(503).json({
+          status: "error",
+          message: "Database health check failed",
+          error: error instanceof Error ? error.message : "Unknown error",
+          timestamp: new Date().toISOString(),
+        });
+      }
     });
 
     // Test API route (temporary)
@@ -117,9 +253,12 @@ class App {
       console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       console.log(`📍 Server running on: http://localhost:${this.port}`);
       console.log(
-        `� API Documentation: http://localhost:${this.port}/api-docs`
+        `📚 API Documentation: http://localhost:${this.port}/api-docs`
       );
-      console.log(`�📊 Health Check: http://localhost:${this.port}/health`);
+      console.log(`🏥 Health Check: http://localhost:${this.port}/health`);
+      console.log(
+        `�️  Database Health: http://localhost:${this.port}/health/database`
+      );
       console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`Timestamp: ${new Date().toISOString()}`);
