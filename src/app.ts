@@ -4,6 +4,7 @@ import swaggerUi from "swagger-ui-express";
 import { Request, Response, NextFunction } from "express";
 import { completeSwaggerConfig } from "@docs/index.js";
 import { prisma, checkDatabaseHealth, getDatabaseStatus } from "@config/db.js";
+import routes from "./routes/index.js";
 
 class App {
   public app: express.Application;
@@ -181,8 +182,8 @@ class App {
     // API Documentation
     this.initializeSwagger();
 
-    // API routes will go here
-    // this.app.use('/api/v1', routes);
+    // API routes
+    this.app.use("/api/v1", routes);
   }
 
   private initializeSwagger() {
