@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7.0-alpine
+    container_name: godrive-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: >
+      sh -c "
+        if [ -n \"$$REDIS_PASSWORD\" ]; then
+          redis-server --requirepass $$REDIS_PASSWORD
+        else
+          redis-server
+        fi
+      "
+    volumes:
+      - redis_data:/data
+    networks:
+      - godrive-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: godrive-redis-ui
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=redis:redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - godrive-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  godrive-network:
+    driver: bridge
