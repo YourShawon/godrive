@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodError, ZodIssue } from "zod";
+import { logger } from "../utils/logger/config.js";
+import { createErrorResponse } from "../utils/responses.js";
 
 // Validation middleware factory
 export const validateRequest = (schema: {
@@ -8,22 +10,42 @@ export const validateRequest = (schema: {
   params?: z.ZodSchema;
 }) => {
   return (req: Request, res: Response, next: NextFunction): void => {
+    const traceId = req.traceId;
+
     try {
       // Validate request body
       if (schema.body) {
         req.body = schema.body.parse(req.body);
+        logger.debug("Body validation successful", {
+          traceId,
+          bodyKeys: Object.keys(req.body || {}),
+          module: "validation",
+          action: "validateBody",
+        });
       }
 
       // Validate query parameters
       if (schema.query) {
         const validatedQuery = schema.query.parse(req.query);
         req.query = validatedQuery as any;
+        logger.debug("Query validation successful", {
+          traceId,
+          queryKeys: Object.keys(validatedQuery || {}),
+          module: "validation",
+          action: "validateQuery",
+        });
       }
 
       // Validate URL parameters
       if (schema.params) {
         const validatedParams = schema.params.parse(req.params);
         req.params = validatedParams as any;
+        logger.debug("Params validation successful", {
+          traceId,
+          paramKeys: Object.keys(validatedParams || {}),
+          module: "validation",
+          action: "validateParams",
+        });
       }
 
       next();
@@ -35,23 +57,48 @@ export const validateRequest = (schema: {
           code: err.code,
         }));
 
-        res.status(400).json({
-          status: "error",
-          message: "Validation failed",
-          code: "VALIDATION_ERROR",
+        logger.warn("Validation failed", {
+          traceId,
           errors,
-          timestamp: new Date().toISOString(),
+          receivedBody: schema.body ? req.body : undefined,
+          receivedQuery: schema.query ? req.query : undefined,
+          receivedParams: schema.params ? req.params : undefined,
+          module: "validation",
+          action: "validationFailed",
         });
+
+        res
+          .status(400)
+          .json(
+            createErrorResponse(
+              "Validation failed",
+              "VALIDATION_ERROR",
+              { errors },
+              traceId
+            )
+          );
         return;
       }
 
       // Handle other errors
-      res.status(500).json({
-        status: "error",
-        message: "Internal server error",
-        code: "INTERNAL_ERROR",
-        timestamp: new Date().toISOString(),
+      logger.error("Unexpected validation error", {
+        traceId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        module: "validation",
+        action: "unexpectedError",
       });
+
+      res
+        .status(500)
+        .json(
+          createErrorResponse(
+            "Internal validation error",
+            "INTERNAL_ERROR",
+            {},
+            traceId
+          )
+        );
     }
   };
 };
