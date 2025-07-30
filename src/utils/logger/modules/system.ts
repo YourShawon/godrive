@@ -85,6 +85,54 @@ export const systemLogger = {
         context: { signal },
       });
     },
+
+    requestStarted: (traceId: string, method: string, url: string) => {
+      logDebug({
+        traceId,
+        module: "system",
+        action: "requestStart",
+        message: `${method} ${url}`,
+        context: { method, url },
+      });
+    },
+
+    middlewareRegistered: (middleware: string, description: string) => {
+      logInfo({
+        traceId: "system",
+        module: "system",
+        action: "middlewareRegistration",
+        message: `Middleware registered: ${middleware}`,
+        context: { middleware, description },
+      });
+    },
+
+    middlewareError: (middleware: string, error: Error, traceId: string) => {
+      logError({
+        traceId,
+        module: "system",
+        action: "middlewareError",
+        message: `Middleware error in ${middleware}: ${error.message}`,
+        error: { name: error.name, message: error.message },
+        context: { middleware },
+      });
+    },
+
+    errorOccurred: (
+      traceId: string,
+      error: Error,
+      method: string,
+      url: string,
+      status: number
+    ) => {
+      logError({
+        traceId,
+        module: "system",
+        action: "errorHandler",
+        message: `${status} error: ${error.message}`,
+        error: { name: error.name, message: error.message },
+        context: { method, url, status },
+      });
+    },
   },
 };
 
