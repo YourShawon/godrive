@@ -1,0 +1,11 @@
+{"context":{"email":"tes***@exa***","password":"***","phoneNumber":"+123***"},"level":"info","message":"Logger test started","module":"test","timestamp":"2025-07-30T06:20:24.359+06:00","traceId":"test-123"}
+{"action":"getUser","context":{"requesterId":"requester456","requesterRole":"ADMIN","userId":"user123"},"level":"info","message":"User retrieved successfully","module":"user","timestamp":"2025-07-30T06:20:24.365+06:00","traceId":"test-456"}
+{"action":"getUser","context":{"cacheKey":"user:profile:v1:user123","userId":"user123"},"level":"info","message":"Cache hit for user profile","module":"user","timestamp":"2025-07-30T06:20:24.366+06:00","traceId":"test-789"}
+{"context":{"email":"tes***@exa***","password":"***","phoneNumber":"+123***"},"level":"info","message":"Logger test started","module":"test","timestamp":"2025-07-30T06:21:39.601+06:00","traceId":"test-123"}
+{"action":"getUser","context":{"requesterId":"requester456","requesterRole":"ADMIN","userId":"user123"},"level":"info","message":"User retrieved successfully","module":"user","timestamp":"2025-07-30T06:21:39.604+06:00","traceId":"test-456"}
+{"action":"getUser","context":{"cacheKey":"user:profile:v1:user123","userId":"user123"},"level":"info","message":"Cache hit for user profile","module":"user","timestamp":"2025-07-30T06:21:39.605+06:00","traceId":"test-789"}
+{"context":{"email":"tes***@exa***","password":"***"},"level":"info","message":"Refactored logger test started","module":"test","timestamp":"2025-07-30T06:34:57.735+06:00","traceId":"refactor-test-123"}
+{"action":"getUser","context":{"requesterId":"requester456","requesterRole":"ADMIN","userId":"user123"},"level":"info","message":"User retrieved successfully","module":"user","timestamp":"2025-07-30T06:34:57.743+06:00","traceId":"refactor-456"}
+{"action":"getUser","context":{"cacheKey":"user:profile:v1:user123","userId":"user123"},"level":"info","message":"Cache hit for user profile","module":"user","timestamp":"2025-07-30T06:34:57.744+06:00","traceId":"refactor-789"}
+{"action":"applicationStart","context":{"port":3000},"level":"info","message":"Application started on port 3000","module":"system","timestamp":"2025-07-30T06:34:57.744+06:00","traceId":"system"}
+{"action":"redisConnection","level":"info","message":"Connected to Redis","module":"system","timestamp":"2025-07-30T06:34:57.745+06:00","traceId":"system"}
