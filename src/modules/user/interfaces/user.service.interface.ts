@@ -8,6 +8,10 @@
 
 import { SafeUser } from "../interfaces/user.repository.interface.js";
 import { HATEOASResponse } from "../../../utils/hateoas/hateoas.utils.js";
+import {
+  CreateUserInput,
+  CreateUserResponse,
+} from "../schemas/createUser.schema.js";
 
 /**
  * User Service Interface
@@ -47,9 +51,43 @@ export interface IUserService {
    */
   getUserByIdWithLinks(id: string): Promise<HATEOASResponse<SafeUser> | null>;
 
+  /**
+   * Create a new user account
+   *
+   * Business Rules:
+   * - Email must be unique across the system
+   * - Password must meet security requirements (handled by validation)
+   * - Password is hashed before storage (bcrypt)
+   * - Default role is CUSTOMER unless specified
+   * - Implements cache warming for new user
+   * - Logs user registration events
+   *
+   * @param userData - Validated user creation data
+   * @returns Promise<SafeUser> - Created user object (excludes password)
+   * @throws UserAlreadyExistsError - If email already exists
+   * @throws InvalidUserDataError - If business rules are violated
+   * @throws ServiceError - For system errors
+   */
+  createUser(userData: CreateUserInput): Promise<SafeUser>;
+
+  /**
+   * Create a new user account with HATEOAS links
+   *
+   * Enhanced version that includes hypermedia links for Level 3 REST maturity.
+   * Provides self-descriptive API responses with available actions.
+   *
+   * @param userData - Validated user creation data
+   * @returns Promise<HATEOASResponse<SafeUser>> - Created user with HATEOAS links
+   * @throws UserAlreadyExistsError - If email already exists
+   * @throws InvalidUserDataError - If business rules are violated
+   * @throws ServiceError - For system errors
+   */
+  createUserWithLinks(
+    userData: CreateUserInput
+  ): Promise<HATEOASResponse<SafeUser>>;
+
   // Future service methods (following RESTful patterns):
   // getUserByEmail(email: string): Promise<SafeUser | null>;
-  // createUser(userData: CreateUserData): Promise<SafeUser>;
   // updateUser(id: string, updates: UpdateUserData): Promise<SafeUser | null>;
   // deactivateUser(id: string): Promise<boolean>;
   // getUserPreferences(id: string): Promise<UserPreferences>;
