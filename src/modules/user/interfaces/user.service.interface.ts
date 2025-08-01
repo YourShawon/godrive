@@ -2,7 +2,7 @@
  * User Service Interface - Business Logic Contract
  *
  * This interface defines the business operations for user management.
- * Following FAANG standards: contract-first development with clear separation of concerns.
+ * contract-first development with clear separation of concerns.
  * Now includes HATEOAS support for Level 3 REST maturity.
  */
 

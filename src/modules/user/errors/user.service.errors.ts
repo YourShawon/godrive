@@ -1,7 +1,7 @@
 /**
  * User Service Error Classes
  *
- * FAANG Standard: Custom error types for precise error handling and monitoring
+ * Custom error types for precise error handling and monitoring
  * Each error type has specific HTTP status codes and error codes for API consistency
  */
 

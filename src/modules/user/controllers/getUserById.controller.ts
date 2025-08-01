@@ -2,7 +2,7 @@
  * Get User By ID Controller
  * Handles HTTP request/response for retrieving a user by MongoDB ObjectId
  * Updated to use Service layer for business logic separation
- * Now supports HATEOAS (Level 3 REST maturity) via query parameter
+ * Now supports HATEOAS via query parameter
  */
 
 import { Request, Response } from "express";
@@ -127,7 +127,7 @@ export const getUserById = async (
             user,
             meta: {
               processedBy: "service-layer",
-              cached: false, // Future: service will handle caching
+              cached: "handled-by-service", // Redis caching integrated
               version: "1.0",
               hateoasAvailable: `Add ?include=links for hypermedia links`,
             },
