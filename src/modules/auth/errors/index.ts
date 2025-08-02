@@ -44,6 +44,8 @@ export {
   ResetTokenUsedError,
   TooManyResetRequestsError,
   PasswordResetEmailFailedError,
+  PasswordHashError,
+  PasswordValidationError,
 } from "./PasswordResetError.js";
 
 // Import base classes for type guards

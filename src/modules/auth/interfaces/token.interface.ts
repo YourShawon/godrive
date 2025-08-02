@@ -15,7 +15,7 @@ import {
  * Token Generation Options
  */
 export interface TokenGenerationOptions {
-  expiresIn?: string | number; // Token expiration (e.g., '15m', 3600)
+  expiresIn?: string; // Token expiration (e.g., '15m', '1h', '7d')
   audience?: string; // Token audience
   issuer?: string; // Token issuer
   subject?: string; // Token subject

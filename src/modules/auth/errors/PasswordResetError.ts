@@ -117,3 +117,53 @@ export class PasswordResetEmailFailedError extends PasswordResetError {
     });
   }
 }
+
+/**
+ * Password Hash Error
+ * Used when password hashing/verification operations fail
+ */
+export class PasswordHashError extends PasswordResetError {
+  readonly statusCode = 500; // HTTP 500 Internal Server Error
+  readonly errorCode = "PASSWORD_HASH_ERROR";
+
+  constructor(
+    message: string = "Password hashing operation failed",
+    reason?: string,
+    details?: Record<string, any>
+  ) {
+    super(message, {
+      reason,
+      action: "Please try again or contact support",
+      ...details,
+    });
+  }
+}
+
+/**
+ * Password Validation Error
+ * Used when password doesn't meet security requirements
+ */
+export class PasswordValidationError extends PasswordResetError {
+  readonly statusCode = 400; // HTTP 400 Bad Request
+  readonly errorCode = "PASSWORD_VALIDATION_ERROR";
+
+  public readonly validationErrors: string[];
+  public readonly requirements: Record<string, boolean>;
+
+  constructor(
+    message: string = "Password does not meet security requirements",
+    validationErrors: string[] = [],
+    requirements: Record<string, boolean> = {},
+    details?: Record<string, any>
+  ) {
+    super(message, {
+      validationErrors,
+      requirements,
+      action: "Please choose a stronger password",
+      ...details,
+    });
+
+    this.validationErrors = validationErrors;
+    this.requirements = requirements;
+  }
+}
