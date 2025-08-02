@@ -5,11 +5,7 @@
  * Handles token generation, verification, and storage
  */
 
-import {
-  TokenPayload,
-  TokenPair,
-  RefreshTokenData,
-} from "./auth.service.interface.js";
+import { TokenPayload, TokenPair } from "./auth.service.interface.js";
 
 /**
  * Token Generation Options
@@ -110,58 +106,4 @@ export interface ITokenService {
    * @returns Promise<number> - Number of cleaned tokens
    */
   cleanupExpiredTokens(): Promise<number>;
-}
-
-/**
- * Refresh Token Repository Interface
- * Handles refresh token storage and management
- */
-export interface IRefreshTokenRepository {
-  /**
-   * Store refresh token
-   * @param tokenData - Refresh token data
-   * @returns Promise<boolean> - Success status
-   */
-  storeRefreshToken(tokenData: RefreshTokenData): Promise<boolean>;
-
-  /**
-   * Find refresh token by token value
-   * @param token - Refresh token value
-   * @returns Promise<RefreshTokenData | null> - Token data or null
-   */
-  findRefreshToken(token: string): Promise<RefreshTokenData | null>;
-
-  /**
-   * Find all refresh tokens for user
-   * @param userId - User ID
-   * @returns Promise<RefreshTokenData[]> - Array of user's refresh tokens
-   */
-  findUserRefreshTokens(userId: string): Promise<RefreshTokenData[]>;
-
-  /**
-   * Revoke refresh token
-   * @param tokenId - Token ID to revoke
-   * @returns Promise<boolean> - Success status
-   */
-  revokeRefreshToken(tokenId: string): Promise<boolean>;
-
-  /**
-   * Revoke all refresh tokens for user
-   * @param userId - User ID
-   * @returns Promise<number> - Number of revoked tokens
-   */
-  revokeAllUserTokens(userId: string): Promise<number>;
-
-  /**
-   * Clean up expired refresh tokens
-   * @returns Promise<number> - Number of cleaned tokens
-   */
-  cleanupExpiredRefreshTokens(): Promise<number>;
-
-  /**
-   * Update refresh token last used timestamp
-   * @param tokenId - Token ID
-   * @returns Promise<boolean> - Success status
-   */
-  updateTokenLastUsed(tokenId: string): Promise<boolean>;
 }
