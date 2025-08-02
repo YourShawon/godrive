@@ -16,7 +16,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "start": "node --loader tsconfig-paths/esm dist/server.js",
+    "start": "tsx src/server.ts",
     "dev": "tsx watch src/server.ts",
     "test": "jest",
     "test:watch": "jest --watch",

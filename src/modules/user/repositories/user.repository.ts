@@ -1,6 +1,18 @@
-// User Repository Implementation - Prisma database operations
+/**
+ * User Repository - Clean Orchestrator Pattern
+ * 
+ * Responsibilities:
+ * - Implements IUserRepository interface
+ * - Orchestrates operations between specialized repositories
+ * - Maintains API contract compatibility
+ * - Provides single entry point for data access
+ * 
+ * SOLID Principles Applied:
+ * - Single Responsibility: Repository orchestration only
+ * - Open/Closed: Extensible through composition
+ * - Dependency Inversion: Depends on specialized repositories
+ */
 
-import { prisma } from "../../../config/db.js";
 import { logger } from "../../../utils/logger/config.js";
 import {
   IUserRepository,
@@ -8,209 +20,52 @@ import {
   CreateUserData,
 } from "../interfaces/user.repository.interface.js";
 
-/**
- * Prisma-based User Repository
- * Implements IUserRepository interface using Prisma ORM
- */
+// Import specialized repositories
+import { createUserReadRepository } from "./operations/userRead.repository.js";
+import { createUserWriteRepository } from "./operations/userWrite.repository.js";
+
 export class UserRepository implements IUserRepository {
+  private readonly readRepo;
+  private readonly writeRepo;
+
+  constructor() {
+    // Dependency injection of specialized repositories
+    this.readRepo = createUserReadRepository();
+    this.writeRepo = createUserWriteRepository();
+
+    logger.info("🏗️ UserRepository initialized with specialized repositories", {
+      module: "UserRepository",
+      action: "constructor",
+      repositories: ["UserReadRepository", "UserWriteRepository"],
+    });
+  }
+
   /**
-   * Find a user by MongoDB ObjectId
-   * @param id - Valid MongoDB ObjectId string (validated by middleware)
-   * @returns Promise<SafeUser | null>
+   * Find user by ID - delegates to read repository
    */
   async findById(id: string): Promise<SafeUser | null> {
-    const startTime = Date.now();
-
-    logger.debug("🗄️ [UserRepository] Starting findById", {
-      userId: id,
-      module: "UserRepository",
-      action: "findById_start",
-    });
-
-    try {
-      // Prisma query to find user by ObjectId
-      const user = await prisma.user.findUnique({
-        where: {
-          id: id, // MongoDB ObjectId
-        },
-      });
-
-      const duration = Date.now() - startTime;
-
-      if (user) {
-        // Remove password before returning
-        const { password, ...safeUser } = user;
-
-        logger.info("✅ [UserRepository] User found", {
-          userId: id,
-          userName: user.name,
-          userRole: user.role,
-          duration: `${duration}ms`,
-          module: "UserRepository",
-          action: "findById_success",
-        });
-
-        return safeUser as SafeUser;
-      } else {
-        logger.info("❌ [UserRepository] User not found", {
-          userId: id,
-          duration: `${duration}ms`,
-          module: "UserRepository",
-          action: "findById_not_found",
-        });
-
-        return null;
-      }
-    } catch (error) {
-      const duration = Date.now() - startTime;
-
-      logger.error("❌ [UserRepository] Database error in findById", {
-        userId: id,
-        duration: `${duration}ms`,
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        module: "UserRepository",
-        action: "findById_error",
-      });
-
-      // Re-throw the error to be handled by service layer
-      throw new Error(
-        `Database error finding user: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    return this.readRepo.findById(id);
   }
 
   /**
-   * Find a user by email address
-   * @param email - Normalized email address (lowercase, trimmed)
-   * @returns Promise<SafeUser | null>
+   * Find user by email - delegates to read repository
    */
   async findByEmail(email: string): Promise<SafeUser | null> {
-    const startTime = Date.now();
-
-    logger.debug("🗄️ [UserRepository] Starting findByEmail", {
-      email,
-      module: "UserRepository",
-      action: "findByEmail_start",
-    });
-
-    try {
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      const duration = Date.now() - startTime;
-
-      if (user) {
-        const { password, ...safeUser } = user;
-
-        logger.info("✅ [UserRepository] User found by email", {
-          email,
-          userId: user.id,
-          userName: user.name,
-          duration: `${duration}ms`,
-          module: "UserRepository",
-          action: "findByEmail_success",
-        });
-
-        return safeUser as SafeUser;
-      } else {
-        logger.info("❌ [UserRepository] User not found by email", {
-          email,
-          duration: `${duration}ms`,
-          module: "UserRepository",
-          action: "findByEmail_not_found",
-        });
-
-        return null;
-      }
-    } catch (error) {
-      const duration = Date.now() - startTime;
-
-      logger.error("❌ [UserRepository] Database error in findByEmail", {
-        email,
-        duration: `${duration}ms`,
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        module: "UserRepository",
-        action: "findByEmail_error",
-      });
-
-      throw new Error(
-        `Database error finding user by email: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    return this.readRepo.findByEmail(email);
   }
 
   /**
-   * Create a new user in the database
-   * @param userData - User data with hashed password
-   * @returns Promise<SafeUser> - Created user (excludes password)
+   * Create user - delegates to write repository
    */
   async create(userData: CreateUserData): Promise<SafeUser> {
-    const startTime = Date.now();
-
-    logger.debug("🗄️ [UserRepository] Starting create", {
-      email: userData.email,
-      name: userData.name,
-      role: userData.role,
-      module: "UserRepository",
-      action: "create_start",
-    });
-
-    try {
-      const user = await prisma.user.create({
-        data: {
-          email: userData.email,
-          password: userData.password, // Already hashed by service
-          name: userData.name,
-          role: userData.role,
-          language: userData.language || "en",
-          currency: userData.currency || "USD",
-          // Optional fields with proper handling
-          ...(userData.preferredCarTypes &&
-            userData.preferredCarTypes.length > 0 && {
-              preferredCarTypes: userData.preferredCarTypes,
-            }),
-        },
-      });
-
-      const duration = Date.now() - startTime;
-      const { password, ...safeUser } = user;
-
-      logger.info("✅ [UserRepository] User created successfully", {
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        duration: `${duration}ms`,
-        module: "UserRepository",
-        action: "create_success",
-      });
-
-      return safeUser as SafeUser;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-
-      logger.error("❌ [UserRepository] Database error in create", {
-        email: userData.email,
-        duration: `${duration}ms`,
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        module: "UserRepository",
-        action: "create_error",
-      });
-
-      // Handle specific Prisma errors
-      if (error instanceof Error && error.message.includes("email")) {
-        throw new Error("Email already exists");
-      }
-
-      throw new Error(
-        `Database error creating user: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    return this.writeRepo.create(userData);
   }
+
+  // Future methods will delegate to appropriate specialized repositories:
+  // async update(id: string, userData: UpdateUserData): Promise<SafeUser | null>
+  // async delete(id: string): Promise<boolean>
+  // async findMany(options: FindManyOptions): Promise<SafeUser[]>
+  // async search(query: string): Promise<SafeUser[]>
 }
 
 // Export singleton instance
