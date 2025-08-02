@@ -143,3 +143,43 @@ export class UserOperationFailedError extends ServiceError {
     });
   }
 }
+
+/**
+ * User Update Forbidden Error
+ * Thrown when user tries to update another user's data (authorization)
+ */
+export class UserUpdateForbiddenError extends ServiceError {
+  readonly statusCode = 403; // Forbidden
+  readonly errorCode = "USER_UPDATE_FORBIDDEN";
+
+  constructor(
+    userId: string,
+    requesterId: string,
+    details?: Record<string, any>
+  ) {
+    super(`User ${requesterId} is not authorized to update user ${userId}`, {
+      userId,
+      requesterId,
+      ...details,
+    });
+  }
+}
+
+/**
+ * Invalid Password Error
+ * Thrown when current password is incorrect during password change
+ */
+export class InvalidPasswordError extends ServiceError {
+  readonly statusCode = 400; // Bad Request
+  readonly errorCode = "INVALID_PASSWORD";
+
+  constructor(
+    reason: string = "Current password is incorrect",
+    details?: Record<string, any>
+  ) {
+    super(`Password validation failed: ${reason}`, {
+      reason,
+      ...details,
+    });
+  }
+}

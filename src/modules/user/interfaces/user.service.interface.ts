@@ -12,6 +12,10 @@ import {
   CreateUserInput,
   CreateUserResponse,
 } from "../schemas/createUser.schema.js";
+import {
+  UpdateUserInput,
+  ChangePasswordInput,
+} from "../schemas/updateUser.schema.js";
 
 /**
  * User Service Interface
@@ -85,6 +89,74 @@ export interface IUserService {
   createUserWithLinks(
     userData: CreateUserInput
   ): Promise<HATEOASResponse<SafeUser>>;
+
+  /**
+   * Update an existing user account
+   *
+   * Business Rules:
+   * - Users can only update their own account (unless admin)
+   * - Email changes require verification (future feature)
+   * - Role changes restricted to admin users
+   * - Password changes use separate endpoint for security
+   * - Implements optimistic locking to prevent race conditions
+   *
+   * @param id - Valid MongoDB ObjectId of user to update
+   * @param userData - Validated user update data (partial)
+   * @param requesterId - ID of user making the request (for authorization)
+   * @returns Promise<SafeUser> - Updated user object (excludes password)
+   * @throws UserNotFoundError - If user doesn't exist
+   * @throws UserUpdateForbiddenError - If unauthorized to update
+   * @throws UserAlreadyExistsError - If email already exists (on email change)
+   * @throws ServiceError - For system errors
+   */
+  updateUser(
+    id: string,
+    userData: UpdateUserInput,
+    requesterId: string
+  ): Promise<SafeUser>;
+
+  /**
+   * Update an existing user account with HATEOAS links
+   *
+   * Enhanced version that includes hypermedia links for Level 3 REST maturity.
+   * Same business rules as updateUser but returns HATEOAS response.
+   *
+   * @param id - Valid MongoDB ObjectId of user to update
+   * @param userData - Validated user update data (partial)
+   * @param requesterId - ID of user making the request (for authorization)
+   * @returns Promise<HATEOASResponse<SafeUser>> - Updated user with HATEOAS links
+   * @throws Same errors as updateUser
+   */
+  updateUserWithLinks(
+    id: string,
+    userData: UpdateUserInput,
+    requesterId: string
+  ): Promise<HATEOASResponse<SafeUser>>;
+
+  /**
+   * Change user password with current password verification
+   *
+   * Business Rules:
+   * - Must provide current password for verification
+   * - New password must meet security requirements
+   * - Users can only change their own password (unless admin)
+   * - Logs password change events for security audit
+   * - Invalidates existing sessions (future feature)
+   *
+   * @param id - Valid MongoDB ObjectId of user
+   * @param passwordData - Current and new password data
+   * @param requesterId - ID of user making the request
+   * @returns Promise<boolean> - Success status
+   * @throws UserNotFoundError - If user doesn't exist
+   * @throws InvalidPasswordError - If current password is wrong
+   * @throws UserUpdateForbiddenError - If unauthorized
+   * @throws ServiceError - For system errors
+   */
+  changePassword(
+    id: string,
+    passwordData: ChangePasswordInput,
+    requesterId: string
+  ): Promise<boolean>;
 
   // Future service methods (following RESTful patterns):
   // getUserByEmail(email: string): Promise<SafeUser | null>;

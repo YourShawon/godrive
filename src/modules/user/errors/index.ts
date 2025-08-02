@@ -8,4 +8,6 @@ export {
   InvalidUserDataError,
   UserValidationError,
   UserOperationFailedError,
+  UserUpdateForbiddenError,
+  InvalidPasswordError,
 } from "./user.service.errors";
