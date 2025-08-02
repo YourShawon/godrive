@@ -26,6 +26,16 @@ export type UpdateUserData = Partial<Omit<UpdateUserInput, "password">> & {
 };
 
 /**
+ * User with password (for authentication operations)
+ * Only used for password verification - handle with extreme care
+ */
+export type UserWithPassword = {
+  id: string;
+  email: string;
+  password: string; // Hashed password
+};
+
+/**
  * User Repository Interface
  * Defines the contract for user data access operations
  * This abstraction allows us to switch database implementations easily
@@ -71,6 +81,15 @@ export interface IUserRepository {
    * @throws Error - If user not found or database operation fails
    */
   updatePassword(id: string, hashedPassword: string): Promise<boolean>;
+
+  /**
+   * Get user with password for authentication operations
+   * WARNING: Only use for password verification - never expose password in responses
+   * @param id - User ID
+   * @returns Promise<UserWithPassword | null> - User with password or null if not found
+   * @throws Error - If database operation fails
+   */
+  getUserWithPassword(id: string): Promise<UserWithPassword | null>;
 
   // Future methods will be added here:
   // delete(id: string): Promise<boolean>;

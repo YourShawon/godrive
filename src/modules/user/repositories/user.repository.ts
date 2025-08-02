@@ -1,12 +1,12 @@
 /**
  * User Repository - Clean Orchestrator Pattern
- * 
+ *
  * Responsibilities:
  * - Implements IUserRepository interface
  * - Orchestrates operations between specialized repositories
  * - Maintains API contract compatibility
  * - Provides single entry point for data access
- * 
+ *
  * SOLID Principles Applied:
  * - Single Responsibility: Repository orchestration only
  * - Open/Closed: Extensible through composition
@@ -18,6 +18,8 @@ import {
   IUserRepository,
   SafeUser,
   CreateUserData,
+  UpdateUserData,
+  UserWithPassword,
 } from "../interfaces/user.repository.interface.js";
 
 // Import specialized repositories
@@ -61,8 +63,28 @@ export class UserRepository implements IUserRepository {
     return this.writeRepo.create(userData);
   }
 
+  /**
+   * Update user - delegates to write repository
+   */
+  async update(id: string, userData: UpdateUserData): Promise<SafeUser | null> {
+    return this.writeRepo.update(id, userData);
+  }
+
+  /**
+   * Update user password - delegates to write repository
+   */
+  async updatePassword(id: string, hashedPassword: string): Promise<boolean> {
+    return this.writeRepo.updatePassword(id, hashedPassword);
+  }
+
+  /**
+   * Get user with password for authentication - delegates to read repository
+   */
+  async getUserWithPassword(id: string): Promise<UserWithPassword | null> {
+    return this.readRepo.getUserWithPassword(id);
+  }
+
   // Future methods will delegate to appropriate specialized repositories:
-  // async update(id: string, userData: UpdateUserData): Promise<SafeUser | null>
   // async delete(id: string): Promise<boolean>
   // async findMany(options: FindManyOptions): Promise<SafeUser[]>
   // async search(query: string): Promise<SafeUser[]>

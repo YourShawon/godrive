@@ -21,6 +21,10 @@ import {
 import { IUserService } from "../interfaces/user.service.interface.js";
 import { CreateUserInput } from "../schemas/createUser.schema.js";
 import {
+  UpdateUserInput,
+  ChangePasswordInput,
+} from "../schemas/updateUser.schema.js";
+import {
   UserHATEOAS,
   HATEOASResponse,
 } from "../../../utils/hateoas/hateoas.utils.js";
@@ -28,20 +32,27 @@ import {
 // Import specialized services
 import { createUserRetrievalService } from "./operations/userRetrieval.service.js";
 import { createUserCreationService } from "./operations/userCreation.service.js";
+import { createUserUpdateService } from "./operations/userUpdate.service.js";
 
 export class UserService implements IUserService {
   private readonly retrievalService;
   private readonly creationService;
+  private readonly updateService;
 
   constructor(private readonly userRepository: IUserRepository) {
     // Dependency injection of specialized services
     this.retrievalService = createUserRetrievalService(userRepository);
     this.creationService = createUserCreationService(userRepository);
+    this.updateService = createUserUpdateService(userRepository);
 
     logger.info("🏗️ UserService initialized with specialized services", {
       module: "UserService",
       action: "constructor",
-      services: ["UserRetrievalService", "UserCreationService"],
+      services: [
+        "UserRetrievalService",
+        "UserCreationService",
+        "UserUpdateService",
+      ],
     });
   }
 
@@ -157,6 +168,79 @@ export class UserService implements IUserService {
 
       throw error;
     }
+  }
+
+  /**
+   * Update user - delegates to UserUpdateService
+   */
+  async updateUser(
+    id: string,
+    userData: UpdateUserInput,
+    requesterId: string
+  ): Promise<SafeUser> {
+    return this.updateService.updateUser(id, userData, requesterId);
+  }
+
+  /**
+   * Update user with HATEOAS links
+   */
+  async updateUserWithLinks(
+    id: string,
+    userData: UpdateUserInput,
+    requesterId: string
+  ): Promise<HATEOASResponse<SafeUser>> {
+    logger.debug("🔗 [UserService] Starting updateUserWithLinks", {
+      userId: id,
+      requesterId,
+      updateFields: Object.keys(userData),
+      module: "UserService",
+      action: "updateUserWithLinks_start",
+    });
+
+    try {
+      const user = await this.updateUser(id, userData, requesterId);
+
+      // Generate HATEOAS links (reuse existing pattern)
+      const links = UserHATEOAS.generateUserLinks(user.id, user.role);
+      const response: HATEOASResponse<SafeUser> = {
+        data: user,
+        _links: links,
+      };
+
+      logger.info(
+        "✅ [UserService] updateUserWithLinks completed successfully",
+        {
+          userId: user.id,
+          requesterId,
+          linksCount: Object.keys(response._links).length,
+          module: "UserService",
+          action: "updateUserWithLinks_success",
+        }
+      );
+
+      return response;
+    } catch (error) {
+      logger.error("❌ [UserService] Error in updateUserWithLinks", {
+        userId: id,
+        requesterId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        module: "UserService",
+        action: "updateUserWithLinks_error",
+      });
+
+      throw error;
+    }
+  }
+
+  /**
+   * Change password - delegates to UserUpdateService
+   */
+  async changePassword(
+    id: string,
+    passwordData: ChangePasswordInput,
+    requesterId: string
+  ): Promise<boolean> {
+    return this.updateService.changePassword(id, passwordData, requesterId);
   }
 }
 

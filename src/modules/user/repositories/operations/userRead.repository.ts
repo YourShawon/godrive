@@ -7,7 +7,10 @@
 
 import { prisma } from "../../../../config/db.js";
 import { logger } from "../../../../utils/logger/config.js";
-import { SafeUser } from "../../interfaces/user.repository.interface.js";
+import {
+  SafeUser,
+  UserWithPassword,
+} from "../../interfaces/user.repository.interface.js";
 
 export class UserReadRepository {
   /**
@@ -127,6 +130,61 @@ export class UserReadRepository {
       throw new Error(
         `Database error finding user by email: ${error instanceof Error ? error.message : "Unknown error"}`
       );
+    }
+  }
+
+  /**
+   * Get user with password for authentication operations
+   * WARNING: Only use for password verification - never expose password in responses
+   */
+  async getUserWithPassword(id: string): Promise<UserWithPassword | null> {
+    const startTime = Date.now();
+
+    logger.info("Finding user with password for authentication", {
+      userId: id,
+      module: "UserReadRepository",
+      action: "getUserWithPassword_start",
+    });
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          password: true, // Only select what we need for auth
+        },
+      });
+
+      const duration = Date.now() - startTime;
+
+      if (user) {
+        logger.info("User with password found for authentication", {
+          userId: id,
+          module: "UserReadRepository",
+          action: "getUserWithPassword_success",
+          duration: `${duration}ms`,
+        });
+        return user;
+      } else {
+        logger.warn("User not found for password authentication", {
+          userId: id,
+          module: "UserReadRepository",
+          action: "getUserWithPassword_not_found",
+          duration: `${duration}ms`,
+        });
+        return null;
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error("Failed to get user with password", {
+        userId: id,
+        error: error instanceof Error ? error.message : "Unknown error",
+        module: "UserReadRepository",
+        action: "getUserWithPassword_error",
+        duration: `${duration}ms`,
+      });
+      throw error;
     }
   }
 
