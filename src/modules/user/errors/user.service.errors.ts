@@ -69,3 +69,77 @@ export class UserAccessDeniedError extends ServiceError {
     });
   }
 }
+
+/**
+ * User Already Exists Error
+ * Thrown when attempting to create a user with an email that already exists
+ */
+export class UserAlreadyExistsError extends ServiceError {
+  readonly statusCode = 409; // Conflict
+  readonly errorCode = "USER_ALREADY_EXISTS";
+
+  constructor(email: string, details?: Record<string, any>) {
+    super(`User with email ${email} already exists`, { email, ...details });
+  }
+}
+
+/**
+ * Invalid User Data Error
+ * Thrown when user data violates business rules (beyond validation)
+ */
+export class InvalidUserDataError extends ServiceError {
+  readonly statusCode = 422; // Unprocessable Entity
+  readonly errorCode = "INVALID_USER_DATA";
+
+  constructor(reason: string, field?: string, details?: Record<string, any>) {
+    super(`Invalid user data: ${reason}`, {
+      field,
+      reason,
+      ...details,
+    });
+  }
+}
+
+/**
+ * User Validation Error
+ * Thrown when input validation fails (schema validation)
+ */
+export class UserValidationError extends ServiceError {
+  readonly statusCode = 400; // Bad Request
+  readonly errorCode = "USER_VALIDATION_ERROR";
+
+  constructor(
+    validationErrors: Array<{ field: string; message: string; code: string }>,
+    details?: Record<string, any>
+  ) {
+    const errorSummary = validationErrors
+      .map((err) => `${err.field}: ${err.message}`)
+      .join(", ");
+
+    super(`Validation failed: ${errorSummary}`, {
+      validationErrors,
+      ...details,
+    });
+  }
+}
+
+/**
+ * User Operation Failed Error
+ * Thrown when a user operation fails due to external dependencies
+ */
+export class UserOperationFailedError extends ServiceError {
+  readonly statusCode = 503; // Service Unavailable
+  readonly errorCode = "USER_OPERATION_FAILED";
+
+  constructor(
+    operation: string,
+    reason: string,
+    details?: Record<string, any>
+  ) {
+    super(`User operation '${operation}' failed: ${reason}`, {
+      operation,
+      reason,
+      ...details,
+    });
+  }
+}

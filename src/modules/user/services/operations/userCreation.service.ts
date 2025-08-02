@@ -14,6 +14,11 @@ import {
 } from "../../interfaces/user.repository.interface.js";
 import { CreateUserInput } from "../../schemas/createUser.schema.js";
 import { userCacheService } from "../cache/userCache.service.js";
+import {
+  UserAlreadyExistsError,
+  InvalidUserDataError,
+  UserOperationFailedError,
+} from "../../errors/index.js";
 
 export class UserCreationService {
   constructor(private readonly userRepository: IUserRepository) {}
@@ -50,8 +55,23 @@ export class UserCreationService {
       // 4. Create user in database
       const newUser = await this.userRepository.create(createData);
 
-      // 5. Cache the new user
-      await userCacheService.cacheNewUser(newUser, requestId);
+      // 5. Cache the new user (graceful failure)
+      try {
+        await userCacheService.cacheNewUser(newUser, requestId);
+      } catch (cacheError) {
+        // Log cache failure but don't fail the entire operation
+        logger.warn("⚠️ [UserCreationService] Cache operation failed", {
+          userId: newUser.id,
+          email: newUser.email,
+          error:
+            cacheError instanceof Error
+              ? cacheError.message
+              : "Unknown cache error",
+          requestId,
+          module: "UserCreationService",
+          action: "cache_failure_graceful",
+        });
+      }
 
       const duration = Date.now() - startTime;
 
@@ -80,7 +100,27 @@ export class UserCreationService {
         action: "createUser_error",
       });
 
-      throw error;
+      // Re-throw known service errors as-is
+      if (
+        error instanceof UserAlreadyExistsError ||
+        error instanceof InvalidUserDataError ||
+        error instanceof UserOperationFailedError
+      ) {
+        throw error;
+      }
+
+      // Wrap unknown database/service errors
+      throw new UserOperationFailedError(
+        "create_user",
+        error instanceof Error
+          ? error.message
+          : "Unknown error occurred during user creation",
+        {
+          originalError: error instanceof Error ? error.message : error,
+          email: userData.email,
+          requestId,
+        }
+      );
     }
   }
 
@@ -91,15 +131,35 @@ export class UserCreationService {
     email: string,
     requestId: string
   ): Promise<void> {
-    const existingUser = await this.userRepository.findByEmail(email);
-    if (existingUser) {
-      logger.warn("⚠️ [UserCreationService] User already exists", {
-        email,
-        requestId,
-        module: "UserCreationService",
-        action: "createUser_duplicate_email",
-      });
-      throw new Error("User with this email already exists");
+    try {
+      const existingUser = await this.userRepository.findByEmail(email);
+      if (existingUser) {
+        logger.warn("⚠️ [UserCreationService] User already exists", {
+          email,
+          requestId,
+          module: "UserCreationService",
+          action: "createUser_duplicate_email",
+        });
+
+        // Throw our specific error class instead of generic Error
+        throw new UserAlreadyExistsError(email, { requestId });
+      }
+    } catch (error) {
+      // Re-throw UserAlreadyExistsError as-is
+      if (error instanceof UserAlreadyExistsError) {
+        throw error;
+      }
+
+      // Wrap database/repository errors
+      throw new UserOperationFailedError(
+        "email_uniqueness_check",
+        `Failed to validate email uniqueness: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          email,
+          requestId,
+          originalError: error instanceof Error ? error.message : error,
+        }
+      );
     }
   }
 
@@ -107,8 +167,16 @@ export class UserCreationService {
    * Hash password securely
    */
   private async hashPassword(password: string): Promise<string> {
-    const saltRounds = 12;
-    return await bcrypt.hash(password, saltRounds);
+    try {
+      const saltRounds = 12;
+      return await bcrypt.hash(password, saltRounds);
+    } catch (error) {
+      throw new UserOperationFailedError(
+        "password_hashing",
+        `Failed to hash password: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { originalError: error instanceof Error ? error.message : error }
+      );
+    }
   }
 }
 
