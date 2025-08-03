@@ -7,6 +7,7 @@
 import { Router } from "express";
 import { register } from "../controllers/register.controller.js";
 import { login } from "../controllers/login.controller.js";
+import { logout } from "../controllers/logout.controller.js";
 
 const router = Router();
 
@@ -41,5 +42,22 @@ router.post("/register", register);
  * @returns {object} 500 - Server error
  */
 router.post("/login", login);
+
+/**
+ * POST /auth/logout
+ * User logout endpoint
+ *
+ * @route POST /auth/logout
+ * @body {object} - Logout data
+ * @body {string} userId - User ID
+ * @body {string} [refreshToken] - Refresh token to invalidate
+ * @body {string} [accessToken] - Access token to invalidate
+ * @body {boolean} [logoutFromAllDevices] - Logout from all devices
+ * @returns {object} 200 - Logout success
+ * @returns {object} 400 - Validation error
+ * @returns {object} 401 - Authentication error
+ * @returns {object} 500 - Server error
+ */
+router.post("/logout", logout);
 
 export { router as authRoutes };
