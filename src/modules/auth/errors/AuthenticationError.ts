@@ -1,23 +1,28 @@
 /**
  * Authentication Error Classes
  *
- * Custom error types for authentication failures following ServiceError pattern
- * Each error type has specific HTTP status codes and error codes for API consistency
+ * Custom error types for authentication failures
  */
-
-// Import the base ServiceError from user module (established pattern)
-import { ServiceError } from "../../user/errors/user.service.errors.js";
 
 /**
  * Base Authentication Error
- * All auth-related errors extend this for consistent error handling
+ * Concrete class for authentication failures
  */
-export abstract class AuthenticationError extends ServiceError {
-  abstract readonly statusCode: number;
-  abstract readonly errorCode: string;
+export class AuthenticationError extends Error {
+  public readonly statusCode: number = 401;
+  public readonly errorCode: string = "AUTHENTICATION_ERROR";
 
-  constructor(message: string, details?: Record<string, any>) {
-    super(message, details);
+  constructor(
+    message: string,
+    public readonly details?: Record<string, any>
+  ) {
+    super(message);
+    this.name = "AuthenticationError";
+
+    // Maintain proper stack trace (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, AuthenticationError);
+    }
   }
 }
 

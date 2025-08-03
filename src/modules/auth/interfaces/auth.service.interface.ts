@@ -43,6 +43,91 @@ export interface TokenPayload {
   exp?: number; // Expires at
 }
 
+// ==================== NEW TYPES FOR AUTHSERVICE ====================
+
+/**
+ * Login Request Interface
+ */
+export interface LoginRequest {
+  email: string;
+  password: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
+ * Login Response Interface
+ */
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  user: Omit<any, "password">; // Will be properly typed later
+  tokens: TokenPair;
+}
+
+/**
+ * Register Request Interface
+ */
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
+ * Register Response Interface
+ */
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  user: Omit<any, "password">; // Will be properly typed later
+  tokens: TokenPair;
+}
+
+/**
+ * Refresh Token Request Interface
+ */
+export interface RefreshTokenRequest {
+  refreshToken: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
+ * Refresh Token Response Interface
+ */
+export interface RefreshTokenResponse {
+  success: boolean;
+  message: string;
+  tokens: TokenPair;
+}
+
+/**
+ * Logout Request Interface
+ */
+export interface LogoutRequest {
+  userId: string;
+  refreshToken?: string;
+  accessToken?: string;
+  logoutFromAllDevices?: boolean;
+}
+
+/**
+ * Change Password Request Interface
+ */
+export interface ChangePasswordRequest {
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+}
+
 /**
  * Refresh Token Data Interface (stored in database/cache)
  */
@@ -90,87 +175,35 @@ export interface LoginAttemptData {
 export interface IAuthService {
   /**
    * Register a new user
-   * @param userData - User registration data
-   * @returns Promise<AuthResponse> - User and tokens
-   * @throws InvalidUserDataError, UserAlreadyExistsError, UserOperationFailedError
    */
-  register(userData: RegisterInput): Promise<AuthResponse>;
+  register(registerData: RegisterRequest): Promise<RegisterResponse>;
 
   /**
    * Authenticate user with email/password
-   * @param credentials - Email and password
-   * @param deviceInfo - Optional device information for tracking
-   * @returns Promise<AuthResponse> - User and tokens
-   * @throws InvalidCredentialsError, AccountLockedError, AccountDisabledError
    */
-  login(
-    credentials: LoginInput,
-    deviceInfo?: { userAgent?: string; ipAddress?: string }
-  ): Promise<AuthResponse>;
+  login(loginData: LoginRequest): Promise<LoginResponse>;
 
   /**
    * Refresh access token using refresh token
-   * @param refreshData - Refresh token data
-   * @returns Promise<TokenPair> - New token pair
-   * @throws InvalidTokenError, TokenExpiredError, RefreshTokenNotFoundError
    */
-  refreshToken(refreshData: RefreshTokenInput): Promise<TokenPair>;
+  refreshToken(refreshData: RefreshTokenRequest): Promise<RefreshTokenResponse>;
 
   /**
-   * Logout user (invalidate refresh token)
-   * @param refreshToken - Refresh token to invalidate
-   * @returns Promise<boolean> - Success status
-   * @throws InvalidTokenError
+   * Logout user
    */
-  logout(refreshToken: string): Promise<boolean>;
-
-  /**
-   * Logout from all devices (invalidate all refresh tokens for user)
-   * @param userId - User ID
-   * @returns Promise<boolean> - Success status
-   */
-  logoutAllDevices(userId: string): Promise<boolean>;
-
-  /**
-   * Request password reset (send email)
-   * @param resetData - Email for password reset
-   * @returns Promise<boolean> - Success status
-   * @throws AccountNotFoundError, TooManyResetRequestsError
-   */
-  forgotPassword(resetData: ForgotPasswordInput): Promise<boolean>;
-
-  /**
-   * Reset password using reset token
-   * @param resetData - Reset token and new password
-   * @returns Promise<boolean> - Success status
-   * @throws InvalidResetTokenError, ResetTokenExpiredError, ResetTokenUsedError
-   */
-  resetPassword(resetData: ResetPasswordInput): Promise<boolean>;
+  logout(
+    logoutData: LogoutRequest
+  ): Promise<{ success: boolean; message: string }>;
 
   /**
    * Change password for authenticated user
-   * @param userId - User ID
-   * @param passwordData - Current and new password
-   * @returns Promise<boolean> - Success status
-   * @throws InvalidCredentialsError, UserNotFoundError
    */
   changePassword(
-    userId: string,
-    passwordData: ChangePasswordInput
-  ): Promise<boolean>;
+    changePasswordData: ChangePasswordRequest
+  ): Promise<{ success: boolean; message: string }>;
 
   /**
-   * Verify JWT token and return user data
-   * @param token - JWT access token
-   * @returns Promise<SafeUser> - User data
-   * @throws InvalidTokenError, TokenExpiredError, UserNotFoundError
+   * Validate JWT token and return payload
    */
-  verifyToken(token: string): Promise<SafeUser>;
-
-  /**
-   * Check if user account is locked
-   * @param email - User email
-   * @returns Promise<boolean> - Lock status
-   */
-  isAccountLocked(email: string): Promise<boolean>;
+  validateToken(token: string): Promise<TokenPayload | null>;
 }
