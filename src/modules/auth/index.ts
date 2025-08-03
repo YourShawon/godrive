@@ -42,23 +42,8 @@ export type {
 export { AuthenticationError } from "./errors/AuthenticationError.js";
 export { ValidationError } from "./errors/ValidationError.js";
 
-// Routes (will be created next)
-export { authRoutes } from "./auth.routes.js";
+// Routes
+export { authRoutes } from "./routes/index.js";
 
-/**
- * Example Usage:
- *
- * // In your app initialization
- * import { initializeAuthModule } from '@modules/auth';
- * await initializeAuthModule();
- *
- * // In your controllers
- * import { getAuthService } from '@modules/auth';
- * const authService = getAuthService();
- * const result = await authService.login(loginData);
- *
- * // In your middleware
- * import { getAuthService } from '@modules/auth';
- * const authService = getAuthService();
- * const tokenPayload = await authService.validateToken(token);
- */
+// Controllers (for testing and direct usage)
+export * from "./controllers/index.js";
