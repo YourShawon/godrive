@@ -18,24 +18,9 @@ export async function getCar(
   next: NextFunction
 ): Promise<void> {
   const requestId = `get_car_${Date.now()}`;
-  const carId = req.params.id;
+  const carId = req.params.id as string; // Validated by middleware
 
   try {
-    // Validate that carId is provided
-    if (!carId) {
-      logger.warn("⚠️ Car ID not provided", { requestId });
-      res.status(400).json({
-        success: false,
-        message: "Car ID is required",
-        error: {
-          code: "MISSING_CAR_ID",
-          description: "Please provide a valid car ID",
-        },
-        requestId,
-      });
-      return;
-    }
-
     logger.info("🚗 Get car request started", {
       requestId,
       carId,
