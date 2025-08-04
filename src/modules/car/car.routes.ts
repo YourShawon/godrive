@@ -2,6 +2,7 @@ import express from "express";
 import { getCar } from "./controllers/getCar.controller.js";
 import { listCars } from "./controllers/listCars.controller.js";
 import { createCar } from "./controllers/createCar.controller.js";
+import { updateCar } from "./controllers/updateCar.controller.js";
 import {
   validateParams,
   validateQuery,
@@ -10,6 +11,7 @@ import {
 import { CarIdParamsSchema } from "./schemas/car.schemas.js";
 import { ListCarsQuerySchema } from "./schemas/listCars.schemas.js";
 import { CreateCarSchema } from "./schemas/createCar.schemas.js";
+import { UpdateCarSchema } from "./schemas/updateCar.schemas.js";
 
 const router = express.Router();
 
@@ -21,5 +23,13 @@ router.post("/", validateBody(CreateCarSchema), createCar);
 
 // GET /cars/:id - Get a single car (with validation)
 router.get("/:id", validateParams(CarIdParamsSchema), getCar);
+
+// PUT /cars/:id - Update an existing car
+router.put(
+  "/:id",
+  validateParams(CarIdParamsSchema),
+  validateBody(UpdateCarSchema),
+  updateCar
+);
 
 export default router;

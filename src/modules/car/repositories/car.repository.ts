@@ -252,6 +252,91 @@ export class CarRepository {
       throw error;
     }
   }
+
+  /**
+   * Update an existing car
+   * @param id - Car ID to update
+   * @param updateData - Partial car data to update
+   * @returns Updated car data
+   */
+  async update(id: string, updateData: any) {
+    try {
+      logger.info("🔍 CarRepository: Updating car", {
+        carId: id,
+        updateFields: Object.keys(updateData),
+      });
+
+      // Build update object with only provided fields
+      const data: any = {};
+
+      if (updateData.make !== undefined) data.make = updateData.make;
+      if (updateData.model !== undefined) data.model = updateData.model;
+      if (updateData.year !== undefined) data.year = updateData.year;
+      if (updateData.type !== undefined) data.type = updateData.type;
+      if (updateData.color !== undefined) data.color = updateData.color;
+      if (updateData.transmission !== undefined)
+        data.transmission = updateData.transmission;
+      if (updateData.fuelType !== undefined)
+        data.fuelType = updateData.fuelType;
+      if (updateData.seats !== undefined) data.seats = updateData.seats;
+      if (updateData.doors !== undefined) data.doors = updateData.doors;
+      if (updateData.airConditioning !== undefined)
+        data.airConditioning = updateData.airConditioning;
+      if (updateData.pricePerDay !== undefined)
+        data.pricePerDay = updateData.pricePerDay;
+      if (updateData.isAvailable !== undefined)
+        data.isAvailable = updateData.isAvailable;
+      if (updateData.location !== undefined)
+        data.location = updateData.location;
+      if (updateData.images !== undefined) data.images = updateData.images;
+      if (updateData.description !== undefined)
+        data.description = updateData.description;
+      if (updateData.features !== undefined)
+        data.features = updateData.features;
+
+      const car = await prisma.car.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          make: true,
+          model: true,
+          year: true,
+          type: true,
+          color: true,
+          transmission: true,
+          fuelType: true,
+          seats: true,
+          doors: true,
+          airConditioning: true,
+          pricePerDay: true,
+          isAvailable: true,
+          location: true,
+          images: true,
+          description: true,
+          features: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      logger.info("✅ Car updated successfully", {
+        carId: id,
+        make: car.make,
+        model: car.model,
+        updatedFields: Object.keys(data),
+      });
+
+      return car;
+    } catch (error) {
+      logger.error("❌ Error updating car", {
+        carId: id,
+        updateData: Object.keys(updateData),
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance
