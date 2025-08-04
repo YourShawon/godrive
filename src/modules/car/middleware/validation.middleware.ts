@@ -67,3 +67,63 @@ export function validateParams(schema: ZodSchema) {
     }
   };
 }
+
+/**
+ * Validate request query parameters using Zod schema
+ * @param schema - Zod schema to validate against
+ * @returns Express middleware function
+ */
+export function validateQuery(schema: ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const traceId = req.traceId || `validation_${Date.now()}`;
+
+    try {
+      // Validate request query parameters
+      const validatedQuery = schema.parse(req.query);
+
+      // Replace req.query with validated data (type assertion needed for Express types)
+      req.query = validatedQuery as any;
+
+      logger.info("✅ Query validation successful", {
+        traceId,
+        endpoint: req.route?.path,
+        method: req.method,
+        queryKeys: Object.keys(validatedQuery as object),
+      });
+
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        logger.warn("⚠️ Query validation failed", {
+          traceId,
+          endpoint: req.route?.path,
+          method: req.method,
+          errors: error.issues,
+        });
+
+        res.status(400).json(
+          createErrorResponse(
+            "Invalid query parameters",
+            "QUERY_VALIDATION_ERROR",
+            {
+              validationErrors: error.issues.map((err) => ({
+                field: err.path.join("."),
+                message: err.message,
+                received: err.input,
+              })),
+            },
+            traceId
+          )
+        );
+        return;
+      }
+
+      logger.error("❌ Unexpected query validation error", {
+        traceId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      next(error);
+    }
+  };
+}

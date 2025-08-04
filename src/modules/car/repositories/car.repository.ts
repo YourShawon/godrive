@@ -60,6 +60,123 @@ export class CarRepository {
       throw error;
     }
   }
+
+  /**
+   * Find multiple cars with filters, pagination, and sorting
+   * @param options - Query options including filters, pagination, and sorting
+   * @returns Paginated car results
+   */
+  async findMany(options: {
+    filters?: any;
+    pagination?: { page: number; limit: number };
+    sort?: { field: string; order: "asc" | "desc" };
+  }) {
+    const {
+      filters = {},
+      pagination = { page: 1, limit: 10 },
+      sort = { field: "createdAt", order: "desc" as const },
+    } = options;
+
+    try {
+      logger.info("🔍 CarRepository: Finding cars with filters", {
+        filters,
+        pagination,
+        sort,
+      });
+
+      // Calculate skip for pagination
+      const skip = (pagination.page - 1) * pagination.limit;
+
+      // Build Prisma where clause
+      const where: any = {};
+
+      if (filters.make)
+        where.make = { contains: filters.make, mode: "insensitive" };
+      if (filters.type) where.type = filters.type;
+      if (filters.transmission) where.transmission = filters.transmission;
+      if (filters.fuelType) where.fuelType = filters.fuelType;
+      if (filters.location)
+        where.location = { contains: filters.location, mode: "insensitive" };
+      if (filters.isAvailable !== undefined)
+        where.isAvailable = filters.isAvailable;
+      if (filters.pricePerDay) where.pricePerDay = filters.pricePerDay;
+
+      // Year range filtering
+      if (filters.minYear || filters.maxYear) {
+        where.year = {};
+        if (filters.minYear) where.year.gte = filters.minYear;
+        if (filters.maxYear) where.year.lte = filters.maxYear;
+      }
+
+      // Search functionality (searches in make, model, description)
+      if (filters.search) {
+        where.OR = [
+          { make: { contains: filters.search, mode: "insensitive" } },
+          { model: { contains: filters.search, mode: "insensitive" } },
+          { description: { contains: filters.search, mode: "insensitive" } },
+        ];
+      }
+
+      // Build order by clause
+      const orderBy: any = {};
+      orderBy[sort.field] = sort.order;
+
+      // Execute queries in parallel
+      const [cars, total] = await Promise.all([
+        prisma.car.findMany({
+          where,
+          orderBy,
+          skip,
+          take: pagination.limit,
+          select: {
+            id: true,
+            make: true,
+            model: true,
+            year: true,
+            type: true,
+            color: true,
+            transmission: true,
+            fuelType: true,
+            seats: true,
+            doors: true,
+            airConditioning: true,
+            pricePerDay: true,
+            isAvailable: true,
+            location: true,
+            images: true,
+            description: true,
+            features: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        prisma.car.count({ where }),
+      ]);
+
+      logger.info("✅ Cars found successfully", {
+        totalFound: total,
+        returnedCount: cars.length,
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+
+      return {
+        cars,
+        total,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: Math.ceil(total / pagination.limit),
+      };
+    } catch (error) {
+      logger.error("❌ Error finding cars", {
+        filters,
+        pagination,
+        sort,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance
