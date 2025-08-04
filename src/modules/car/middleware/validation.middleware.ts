@@ -7,6 +7,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodSchema, ZodError } from "zod";
 import { logger } from "../../../utils/logger/config.js";
+import { createErrorResponse } from "../../../utils/responses.js";
 
 /**
  * Validate request parameters using Zod schema
@@ -15,7 +16,7 @@ import { logger } from "../../../utils/logger/config.js";
  */
 export function validateParams(schema: ZodSchema) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const requestId = `validation_${Date.now()}`;
+    const traceId = req.traceId || `validation_${Date.now()}`;
 
     try {
       // Validate request parameters
@@ -25,7 +26,7 @@ export function validateParams(schema: ZodSchema) {
       req.params = validatedParams as any;
 
       logger.info("✅ Parameter validation successful", {
-        requestId,
+        traceId,
         endpoint: req.route?.path,
         method: req.method,
       });
@@ -34,31 +35,31 @@ export function validateParams(schema: ZodSchema) {
     } catch (error) {
       if (error instanceof ZodError) {
         logger.warn("⚠️ Parameter validation failed", {
-          requestId,
+          traceId,
           endpoint: req.route?.path,
           method: req.method,
           errors: error.issues,
         });
 
-        res.status(400).json({
-          success: false,
-          message: "Invalid request parameters",
-          error: {
-            code: "VALIDATION_ERROR",
-            description: "The provided parameters are invalid",
-            details: error.issues.map((err) => ({
-              field: err.path.join("."),
-              message: err.message,
-              received: err.input,
-            })),
-          },
-          requestId,
-        });
+        res.status(400).json(
+          createErrorResponse(
+            "Invalid request parameters",
+            "VALIDATION_ERROR",
+            {
+              validationErrors: error.issues.map((err) => ({
+                field: err.path.join("."),
+                message: err.message,
+                received: err.input,
+              })),
+            },
+            traceId
+          )
+        );
         return;
       }
 
       logger.error("❌ Unexpected validation error", {
-        requestId,
+        traceId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
 
