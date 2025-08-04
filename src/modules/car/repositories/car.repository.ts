@@ -177,6 +177,81 @@ export class CarRepository {
       throw error;
     }
   }
+
+  /**
+   * Create a new car
+   * @param carData - Car data to create
+   * @returns Created car data
+   */
+  async create(carData: any) {
+    try {
+      logger.info("🔍 CarRepository: Creating new car", {
+        make: carData.make,
+        model: carData.model,
+        type: carData.type,
+      });
+
+      const car = await prisma.car.create({
+        data: {
+          make: carData.make,
+          model: carData.model,
+          year: carData.year,
+          type: carData.type,
+          color: carData.color,
+          transmission: carData.transmission,
+          fuelType: carData.fuelType,
+          seats: carData.seats,
+          doors: carData.doors,
+          airConditioning: carData.airConditioning,
+          pricePerDay: carData.pricePerDay,
+          isAvailable: carData.isAvailable ?? true,
+          location: carData.location,
+          images: carData.images || [],
+          description: carData.description,
+          features: carData.features || [],
+        },
+        select: {
+          id: true,
+          make: true,
+          model: true,
+          year: true,
+          type: true,
+          color: true,
+          transmission: true,
+          fuelType: true,
+          seats: true,
+          doors: true,
+          airConditioning: true,
+          pricePerDay: true,
+          isAvailable: true,
+          location: true,
+          images: true,
+          description: true,
+          features: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      logger.info("✅ Car created successfully", {
+        carId: car.id,
+        make: car.make,
+        model: car.model,
+      });
+
+      return car;
+    } catch (error) {
+      logger.error("❌ Error creating car", {
+        carData: {
+          make: carData.make,
+          model: carData.model,
+          type: carData.type,
+        },
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance
