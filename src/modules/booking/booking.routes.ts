@@ -5,9 +5,11 @@
  */
 
 import { Router } from "express";
-import { createBooking } from "./controllers/createBooking.controller.js";
-import { getBooking } from "./controllers/getBooking.controller.js";
-import { listBookings } from "./controllers/listBookings.controller.js";
+import {
+  createBooking,
+  getBooking,
+  listBookings,
+} from "./controllers/index.js";
 import {
   validateCreateBooking,
   validateGetBookingParams,

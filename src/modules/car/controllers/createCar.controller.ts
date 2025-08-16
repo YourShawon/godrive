@@ -6,7 +6,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@utils/logger/config.js";
-import { carRepository } from "../repositories/car.repository.js";
+import { carService } from "../services/car.service.js";
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -32,8 +32,8 @@ export async function createCar(
     // Extract car data from validated request body
     const carData = req.body;
 
-    // Create car using repository
-    const newCar = await carRepository.create(carData);
+    // Create car using service layer
+    const newCar = await carService.createCar(carData);
 
     logger.info("✅ Car created successfully", {
       traceId,
