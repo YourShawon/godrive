@@ -6,6 +6,9 @@
 
 import { Router } from "express";
 import { listReviews } from "./controllers/listReviews.controller.js";
+import { createReview } from "./controllers/createReview.controller.js";
+import { validateRequest } from "../../middlewares/validation.js";
+import { createReviewBodySchema } from "./schemas/createReview.schemas.js";
 import { logger } from "../../utils/logger/config.js";
 
 const router = Router();
@@ -21,18 +24,22 @@ logger.info("🛣️ Setting up review routes");
 router.get("/", listReviews);
 
 /**
+ * @route POST /reviews
+ * @desc Create a new review
+ * @access Private (requires authentication)
+ */
+router.post(
+  "/",
+  validateRequest({ body: createReviewBodySchema }),
+  createReview
+);
+
+/**
  * @route GET /reviews/:id
  * @desc Get a specific review by ID
  * @access Public
  */
 // TODO: Implement getReviewController
-
-/**
- * @route POST /reviews
- * @desc Create a new review
- * @access Private (requires authentication)
- */
-// TODO: Implement createReviewController
 
 /**
  * @route PUT /reviews/:id

@@ -193,6 +193,58 @@ export class ReviewService {
       throw error;
     }
   }
+
+  /**
+   * Create a new review
+   */
+  async createReview(reviewData: {
+    carId: string;
+    userId: string;
+    rating: number;
+    title: string;
+    comment?: string;
+  }) {
+    const traceId = `create_review_service_${Date.now()}`;
+
+    try {
+      logger.info("📝 ReviewService: Creating new review", {
+        traceId,
+        carId: reviewData.carId,
+        userId: reviewData.userId,
+        rating: reviewData.rating,
+      });
+
+      // TODO: Add business logic validations:
+      // 1. Verify car exists
+      // 2. Verify user hasn't already reviewed this car
+      // 3. Verify user has actually booked this car (future enhancement)
+
+      // For now, proceed with creation
+      const newReview = await this.reviewRepository.create({
+        carId: reviewData.carId,
+        userId: reviewData.userId,
+        rating: reviewData.rating,
+        title: reviewData.title,
+        comment: reviewData.comment || "",
+      });
+
+      logger.info("✅ ReviewService: Review created successfully", {
+        traceId,
+        reviewId: newReview.id,
+        carId: newReview.carId,
+        userId: newReview.userId,
+      });
+
+      return newReview;
+    } catch (error) {
+      logger.error("❌ ReviewService: Error creating review", {
+        traceId,
+        reviewData,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
 }
 
 // Export service instance with repository injection

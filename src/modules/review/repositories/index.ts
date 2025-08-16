@@ -8,6 +8,6 @@
 export { ReviewRepository, reviewRepository } from "./review.repository.js";
 
 // Specialized repositories
-export { CoreReviewRepository } from "./core/core-review.repository.js";
-export { ReviewQueryRepository } from "./query/review-query.repository.js";
-export { ReviewStatsRepository } from "./stats/review-stats.repository.js";
+export { CoreReviewRepository } from "./review-core.repository.js";
+export { ReviewQueryRepository } from "./review-query.repository.js";
+export { ReviewStatsRepository } from "./review-stats.repository.js";
