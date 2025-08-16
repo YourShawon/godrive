@@ -7,8 +7,13 @@
 import { Router } from "express";
 import { listReviews } from "./controllers/listReviews.controller.js";
 import { createReview } from "./controllers/createReview.controller.js";
+import { getReview } from "./controllers/getReview.controller.js";
 import { validateRequest } from "../../middlewares/validation.js";
 import { createReviewBodySchema } from "./schemas/createReview.schemas.js";
+import {
+  getReviewParamsSchema,
+  getReviewQuerySchema,
+} from "./schemas/getReview.schemas.js";
 import { logger } from "../../utils/logger/config.js";
 
 const router = Router();
@@ -38,6 +43,20 @@ router.post(
  * @route GET /reviews/:id
  * @desc Get a specific review by ID
  * @access Public
+ */
+router.get(
+  "/:id",
+  validateRequest({
+    params: getReviewParamsSchema,
+    query: getReviewQuerySchema,
+  }),
+  getReview
+);
+
+/**
+ * @route PUT /reviews/:id
+ * @desc Update an existing review
+ * @access Private (requires authentication and ownership)
  */
 // TODO: Implement getReviewController
 
