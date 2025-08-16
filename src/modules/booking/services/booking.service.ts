@@ -63,6 +63,42 @@ export class BookingService {
   }
 
   /**
+   * Get booking by ID
+   */
+  async getBookingById(id: string): Promise<Booking | null> {
+    const traceId = `booking_service_get_${Date.now()}`;
+
+    try {
+      logger.info("🔍 BookingService: Getting booking by ID", {
+        traceId,
+        bookingId: id,
+      });
+
+      const booking = await this.bookingRepository.findById(id);
+
+      if (booking) {
+        logger.info("✅ BookingService: Booking found", {
+          traceId,
+          bookingId: booking.id,
+        });
+      } else {
+        logger.warn("⚠️ BookingService: Booking not found", {
+          traceId,
+          bookingId: id,
+        });
+      }
+
+      return booking;
+    } catch (error) {
+      logger.error("❌ BookingService: Error getting booking", {
+        traceId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Calculate number of days between dates
    */
   private calculateDays(startDate: Date, endDate: Date): number {
