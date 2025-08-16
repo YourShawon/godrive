@@ -221,8 +221,9 @@ enum FuelType {
 enum BookingStatus {
   PENDING
   CONFIRMED
-  CANCELLED
+  ACTIVE
   COMPLETED
+  CANCELLED
 }
 
 enum PaymentStatus {
