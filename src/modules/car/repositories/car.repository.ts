@@ -337,6 +337,17 @@ export class CarRepository implements ICarRepository {
 
       return car;
     } catch (error) {
+      // Handle Prisma "record not found" error
+      if (
+        error instanceof Error &&
+        error.message.includes(
+          "An operation failed because it depends on one or more records that were required but not found"
+        )
+      ) {
+        logger.warn("⚠️ Car not found for update", { carId: id });
+        return null;
+      }
+
       logger.error("❌ Error updating car", {
         carId: id,
         updateData: Object.keys(updateData),

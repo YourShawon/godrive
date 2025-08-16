@@ -6,11 +6,8 @@
 
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@utils/logger/config.js";
-import { carRepository } from "../repositories/car.repository.js";
-import {
-  createSuccessResponse,
-  createPaginatedResponse,
-} from "../../../utils/responses.js";
+import { carService } from "../services/car.service.js";
+import { createSuccessResponse } from "../../../utils/responses.js";
 
 /**
  * Handle listing cars with query parameters
@@ -34,80 +31,66 @@ export async function listCars(
       page = 1,
       limit = 10,
       make,
+      model,
       type,
       transmission,
       fuelType,
       minPrice,
       maxPrice,
-      minYear,
-      maxYear,
+      seats,
       location,
       isAvailable,
-      sort = "createdAt",
-      order = "desc",
-      search,
-    } = req.query as {
-      page?: number;
-      limit?: number;
-      make?: string;
-      type?: string;
-      transmission?: string;
-      fuelType?: string;
-      minPrice?: number;
-      maxPrice?: number;
-      minYear?: number;
-      maxYear?: number;
-      location?: string;
-      isAvailable?: boolean;
-      sort?: string;
-      order?: "asc" | "desc";
-      search?: string;
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query as any;
+
+    // Build filters object for service layer
+    const filters: any = {
+      page: Number(page),
+      limit: Number(limit),
+      sortBy,
+      sortOrder,
     };
 
-    // Build filters object
-    const filters = {
-      ...(make && { make }),
-      ...(type && { type }),
-      ...(transmission && { transmission }),
-      ...(fuelType && { fuelType }),
-      ...(location && { location }),
-      ...(isAvailable !== undefined && { isAvailable }),
-      ...(minPrice && { pricePerDay: { gte: minPrice } }),
-      ...(maxPrice && {
-        pricePerDay: {
-          ...(minPrice ? { gte: minPrice } : {}),
-          lte: maxPrice,
-        },
-      }),
-      ...(minYear && { minYear }),
-      ...(maxYear && { maxYear }),
-      ...(search && { search }),
-    };
+    // Add optional filters only if they exist
+    if (make) filters.make = make;
+    if (model) filters.model = model;
+    if (type) filters.type = type;
+    if (transmission) filters.transmission = transmission;
+    if (fuelType) filters.fuelType = fuelType;
+    if (minPrice) filters.minPrice = Number(minPrice);
+    if (maxPrice) filters.maxPrice = Number(maxPrice);
+    if (seats) filters.seats = Number(seats);
+    if (location) filters.location = location;
+    if (isAvailable !== undefined) filters.isAvailable = Boolean(isAvailable);
 
-    // Get cars from repository
-    const result = await carRepository.findMany({
-      filters,
-      pagination: { page, limit },
-      sort: { field: sort, order },
-    });
+    // Get cars from service layer
+    const result = await carService.listCars(filters);
 
     logger.info("✅ Cars retrieved successfully", {
       traceId,
       totalFound: result.total,
-      page,
-      limit,
-      filtersApplied: Object.keys(filters).length,
+      page: result.page,
+      limit: result.limit,
+      carsCount: result.cars.length,
     });
 
-    // Use paginated response helper
+    // Build pagination metadata
+    const pagination = {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+      hasNext: result.page < result.totalPages,
+      hasPrev: result.page > 1,
+    };
+
     res.status(200).json(
-      createPaginatedResponse(
+      createSuccessResponse(
         "Cars retrieved successfully",
-        result.cars,
         {
-          page,
-          limit,
-          total: result.total,
+          cars: result.cars,
+          pagination,
         },
         traceId
       )

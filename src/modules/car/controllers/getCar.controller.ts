@@ -6,7 +6,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@utils/logger/config.js";
-import { carRepository } from "../repositories/car.repository.js";
+import { carService } from "../services/car.service.js";
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -30,8 +30,8 @@ export async function getCar(
       carId,
     });
 
-    // Find car using repository
-    const car = await carRepository.findById(carId);
+    // Find car using service layer
+    const car = await carService.getCarById(carId);
 
     if (!car) {
       logger.warn("⚠️ Car not found", { traceId, carId });

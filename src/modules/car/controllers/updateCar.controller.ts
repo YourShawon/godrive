@@ -6,7 +6,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { logger } from "@utils/logger/config.js";
-import { carRepository } from "../repositories/car.repository.js";
+import { carService } from "../services/car.service.js";
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -34,9 +34,10 @@ export async function updateCar(
     // Extract update data from validated request body
     const updateData = req.body;
 
-    // Check if car exists first
-    const existingCar = await carRepository.findById(carId);
-    if (!existingCar) {
+    // Update car using service layer
+    const updatedCar = await carService.updateCar(carId, updateData);
+
+    if (!updatedCar) {
       logger.warn("⚠️ Car not found for update", { traceId, carId });
 
       res
@@ -51,9 +52,6 @@ export async function updateCar(
         );
       return;
     }
-
-    // Update car using repository
-    const updatedCar = await carRepository.update(carId, updateData);
 
     logger.info("✅ Car updated successfully", {
       traceId,
