@@ -11,15 +11,17 @@ import {
   createErrorResponse,
 } from "../../../utils/responses.js";
 import { bookingService } from "../services/booking.service.js";
+import { CreateBookingRequest } from "../schemas/createBooking.schema.js";
 
 /**
  * Create a new booking
  *
  * @route POST /api/v1/bookings
  * @access Private (requires authentication)
+ * @middleware validateCreateBooking - Validates and transforms request body
  */
 export async function createBooking(
-  req: Request,
+  req: Request<{}, {}, CreateBookingRequest>,
   res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -31,43 +33,34 @@ export async function createBooking(
       body: req.body,
     });
 
+    // Extract validated data from request body (already validated by middleware)
     const { carId, startDate, endDate, notes } = req.body;
 
     // TODO: Get userId from authenticated user
     const userId = "507f1f77bcf86cd799439011"; // Valid ObjectId placeholder - will be from auth middleware
 
-    // Convert string dates to Date objects
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
+    // Dates are already converted to Date objects by validation middleware
+    // No need for manual conversion
 
     // Create booking via service
-    try {
-      const booking = await bookingService.createBooking({
-        userId,
-        carId,
-        startDate: startDateObj,
-        endDate: endDateObj,
-        notes,
-      });
+    const booking = await bookingService.createBooking({
+      userId,
+      carId,
+      startDate,
+      endDate,
+      ...(notes && { notes }), // Only include notes if defined
+    });
 
-      logger.info("✅ CreateBooking: Booking created successfully", {
-        traceId,
-        bookingId: booking.id,
-      });
+    logger.info("✅ CreateBooking: Booking created successfully", {
+      traceId,
+      bookingId: booking.id,
+    });
 
-      res
-        .status(201)
-        .json(
-          createSuccessResponse(
-            "Booking created successfully",
-            booking,
-            traceId
-          )
-        );
-    } catch (serviceError) {
-      console.error("SERVICE ERROR:", serviceError);
-      throw serviceError; // Re-throw to be caught by outer try-catch
-    }
+    res
+      .status(201)
+      .json(
+        createSuccessResponse("Booking created successfully", booking, traceId)
+      );
   } catch (error) {
     logger.error("❌ CreateBooking: Error creating booking", {
       traceId,
