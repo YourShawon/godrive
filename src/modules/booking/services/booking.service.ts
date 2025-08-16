@@ -6,7 +6,7 @@
 
 import { logger } from "../../../utils/logger/config.js";
 import { IBookingRepository } from "../interfaces/booking.repository.interface.js";
-import { Booking } from "../types/index.js";
+import { Booking, BookingStatus } from "../types/index.js";
 
 export class BookingService {
   constructor(private bookingRepository: IBookingRepository) {}
@@ -91,6 +91,47 @@ export class BookingService {
       return booking;
     } catch (error) {
       logger.error("❌ BookingService: Error getting booking", {
+        traceId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * List bookings with filters and pagination
+   */
+  async listBookings(filters: {
+    userId?: string;
+    carId?: string;
+    status?: BookingStatus;
+    startDate?: Date;
+    endDate?: Date;
+    page: number;
+    limit: number;
+    sortBy: string;
+    sortOrder: "asc" | "desc";
+  }) {
+    const traceId = `booking_service_list_${Date.now()}`;
+
+    try {
+      logger.info("📋 BookingService: Listing bookings", {
+        traceId,
+        filters,
+      });
+
+      const result = await this.bookingRepository.findWithFilters(filters);
+
+      logger.info("✅ BookingService: Bookings listed successfully", {
+        traceId,
+        count: result.bookings.length,
+        total: result.total,
+        page: result.page,
+      });
+
+      return result;
+    } catch (error) {
+      logger.error("❌ BookingService: Error listing bookings", {
         traceId,
         error: error instanceof Error ? error.message : "Unknown error",
       });

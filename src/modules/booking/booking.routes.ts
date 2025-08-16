@@ -7,12 +7,17 @@
 import { Router } from "express";
 import { createBooking } from "./controllers/createBooking.controller.js";
 import { getBooking } from "./controllers/getBooking.controller.js";
+import { listBookings } from "./controllers/listBookings.controller.js";
 import {
   validateCreateBooking,
   validateGetBookingParams,
+  validateListBookingsQuery,
 } from "./middlewares/validation.middleware.js";
 
 const router = Router();
+
+// GET /bookings - List user bookings with pagination and filtering
+router.get("/", validateListBookingsQuery, listBookings);
 
 // POST /bookings - Create new booking
 router.post("/", validateCreateBooking, createBooking);
@@ -21,8 +26,6 @@ router.post("/", validateCreateBooking, createBooking);
 router.get("/:id", validateGetBookingParams, getBooking);
 
 // TODO: Implement remaining routes
-// GET /bookings - List user bookings
-// GET /bookings/:id - Get booking details
 // PUT /bookings/:id - Update booking
 // DELETE /bookings/:id - Cancel booking
 
