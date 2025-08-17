@@ -4,54 +4,26 @@
  * TypeScript types and interfaces for the payment module
  */
 
-// Payment status enum
-export enum PaymentStatus {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  SUCCEEDED = "succeeded",
-  FAILED = "failed",
-  CANCELED = "canceled",
-  REFUNDED = "refunded",
-  PARTIAL_REFUND = "partial_refund",
-}
+import {
+  Payment as PrismaPayment,
+  PaymentStatus,
+  PaymentMethod,
+  PaymentProvider,
+} from "@prisma/client";
 
-// Payment method enum
-export enum PaymentMethod {
-  CARD = "card",
-  BANK_TRANSFER = "bank_transfer",
-  DIGITAL_WALLET = "digital_wallet",
-}
+// Re-export Prisma types
+export { PaymentStatus, PaymentMethod, PaymentProvider };
 
-// Payment provider enum
-export enum PaymentProvider {
-  STRIPE = "stripe",
-}
+// Use Prisma-generated Payment type
+export type Payment = PrismaPayment;
 
-// Currency enum
+// Currency enum (not in Prisma, so we keep it separate)
 export enum Currency {
   USD = "usd",
   EUR = "eur",
   GBP = "gbp",
   CAD = "cad",
   AUD = "aud",
-}
-
-// Base payment entity
-export interface Payment {
-  id: string;
-  bookingId: string;
-  amount: number;
-  currency: Currency;
-  status: PaymentStatus;
-  paymentMethod: PaymentMethod;
-  provider: PaymentProvider;
-  providerPaymentId: string; // Stripe Payment Intent ID
-  providerCustomerId?: string; // Stripe Customer ID
-  metadata: Record<string, any>;
-  failureReason?: string;
-  refundedAmount?: number;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // Create payment input

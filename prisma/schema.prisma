@@ -101,14 +101,12 @@ model Booking {
   carId  String @db.ObjectId
 
   // Booking details
-  startDate  DateTime
-  endDate    DateTime
-  totalDays  Int
-  totalPrice Float
-  status     BookingStatus @default(PENDING)
-
-  // Payment
-  paymentId     String?
+  startDate     DateTime
+  endDate       DateTime
+  totalDays     Int
+  totalAmount   Float
+  totalPrice    Float // Total price including any fees (same as totalAmount for now)
+  status        BookingStatus @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
 
   // Additional info
@@ -119,26 +117,38 @@ model Booking {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  car     Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
-  payment Payment?
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car      Car       @relation(fields: [carId], references: [id], onDelete: Cascade)
+  payments Payment[]
 
   @@map("bookings")
 }
 
 model Payment {
   id        String @id @default(auto()) @map("_id") @db.ObjectId
-  bookingId String @unique @db.ObjectId
+  bookingId String @db.ObjectId
 
   // Payment details
-  amount   Float
-  currency String        @default("USD")
-  method   PaymentMethod
-  status   PaymentStatus @default(PENDING)
+  amount        Float
+  currency      String
+  paymentMethod PaymentMethod
+  status        PaymentStatus   @default(PENDING)
+  provider      PaymentProvider @default(STRIPE)
 
-  // External payment info
-  stripePaymentIntentId String?
-  refundId              String?
+  // External payment provider info
+  providerPaymentId  String? // Stripe Payment Intent ID
+  providerCustomerId String? // Stripe Customer ID
+
+  // Customer info
+  customerEmail String?
+  customerName  String?
+
+  // Refund details
+  refundedAmount Float?
+  failureReason  String?
+
+  // Metadata for additional info
+  metadata Json @default("{}")
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -228,14 +238,20 @@ enum BookingStatus {
 
 enum PaymentStatus {
   PENDING
-  COMPLETED
+  PROCESSING
+  SUCCEEDED
   FAILED
+  CANCELED
   REFUNDED
+  PARTIAL_REFUND
 }
 
 enum PaymentMethod {
-  CREDIT_CARD
-  DEBIT_CARD
-  PAYPAL
+  CARD
+  BANK_TRANSFER
+  DIGITAL_WALLET
+}
+
+enum PaymentProvider {
   STRIPE
 }

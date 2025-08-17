@@ -4,6 +4,8 @@
  * Core type definitions for the booking module
  */
 
+import { PaymentStatus } from "../../payment/types/index.js";
+
 /**
  * Possible states of a booking
  */
@@ -28,7 +30,8 @@ export interface Booking {
   startDate: Date;
   endDate: Date;
   totalDays: number;
-  totalPrice: number;
+  totalAmount: number; // Database field
+  totalPrice: number; // Application field (can be same as totalAmount)
   status: BookingStatus;
 
   // Payment info
@@ -41,17 +44,6 @@ export interface Booking {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
-}
-
-/**
- * Payment status enum
- * TODO: Should match Prisma schema
- */
-export enum PaymentStatus {
-  PENDING = "PENDING",
-  COMPLETED = "COMPLETED",
-  FAILED = "FAILED",
-  REFUNDED = "REFUNDED",
 }
 
 // TODO: Add more types as we need them

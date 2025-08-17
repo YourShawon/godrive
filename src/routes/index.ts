@@ -9,6 +9,7 @@ import { authRoutes } from "../modules/auth/routes/index.js";
 import carRoutes from "../modules/car/car.routes.js";
 import { reviewRoutes } from "../modules/review/review.routes.js";
 import { bookingRoutes } from "../modules/booking/booking.routes.js";
+import { paymentRoutes } from "../modules/payment/payment.routes.js";
 
 const router = express.Router();
 
@@ -26,5 +27,8 @@ router.use("/reviews", reviewRoutes);
 
 // Register booking routes
 router.use("/bookings", bookingRoutes);
+
+// Register payment routes
+router.use("/payments", paymentRoutes);
 
 export default router;

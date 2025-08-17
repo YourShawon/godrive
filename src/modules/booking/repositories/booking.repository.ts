@@ -8,6 +8,7 @@ import { logger } from "../../../utils/logger/config.js";
 import { prisma } from "../../../config/db.js";
 import { IBookingRepository } from "../interfaces/booking.repository.interface.js";
 import { Booking, BookingStatus } from "../types/index.js";
+import { PaymentStatus } from "../../payment/types/index.js";
 
 export class BookingRepository implements IBookingRepository {
   /**
@@ -36,8 +37,9 @@ export class BookingRepository implements IBookingRepository {
       const booking = await prisma.booking.create({
         data: {
           ...bookingData,
+          totalAmount: bookingData.totalPrice, // Map totalPrice to totalAmount for DB
           status: BookingStatus.PENDING,
-          paymentStatus: "PENDING", // TODO: Use enum when available
+          paymentStatus: PaymentStatus.PENDING,
         },
       });
 
