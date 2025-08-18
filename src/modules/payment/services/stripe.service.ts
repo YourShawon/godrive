@@ -1,9 +1,10 @@
 /**
  * Stripe Service
  *
- * Handles Stripe API integration for payment processing
+ * Real Stripe SDK integration for payment processing
  */
 
+import Stripe from "stripe";
 import { logger } from "../../../utils/logger/config.js";
 import {
   CreatePaymentData,
@@ -13,13 +14,29 @@ import {
 } from "../types/index.js";
 
 export class StripeService {
-  private stripe: any; // Will be initialized when we install Stripe SDK
+  private stripe: Stripe;
   private webhookSecret: string;
 
   constructor() {
-    // TODO: Initialize Stripe with API key from environment
-    // this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    // Initialize Stripe with API key from environment
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeSecretKey) {
+      logger.error("❌ STRIPE_SECRET_KEY environment variable is not set");
+      throw new Error("Stripe secret key is required");
+    }
+
+    this.stripe = new Stripe(stripeSecretKey, {
+      apiVersion: "2025-07-30.basil", // Use latest API version
+      typescript: true,
+    });
+
     this.webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+
+    logger.info("✅ StripeService initialized with real Stripe SDK", {
+      apiVersion: "2025-07-30.basil",
+      hasWebhookSecret: !!this.webhookSecret,
+    });
   }
 
   /**
@@ -38,41 +55,39 @@ export class StripeService {
         currency: paymentData.currency,
       });
 
-      // TODO: Implement actual Stripe Payment Intent creation
-      // const paymentIntent = await this.stripe.paymentIntents.create({
-      //   amount: Math.round(paymentData.amount * 100), // Convert to cents
-      //   currency: paymentData.currency,
-      //   automatic_payment_methods: {
-      //     enabled: true,
-      //   },
-      //   metadata: {
-      //     bookingId: paymentData.bookingId,
-      //     ...paymentData.metadata,
-      //   },
-      // });
-
-      // Mock response for now
-      const mockPaymentIntent: PaymentIntentData = {
-        id: `pi_mock_${Date.now()}`,
-        clientSecret: `pi_mock_${Date.now()}_secret_mock`,
-        amount: paymentData.amount,
-        currency: paymentData.currency,
-        status: "requires_payment_method",
+      // Create Stripe Payment Intent with real SDK
+      const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: Math.round(paymentData.amount * 100), // Convert to cents
+        currency: paymentData.currency.toLowerCase(),
+        automatic_payment_methods: {
+          enabled: true,
+        },
         metadata: {
           bookingId: paymentData.bookingId,
+          customerEmail: paymentData.customerEmail || "",
+          customerName: paymentData.customerName || "",
           ...paymentData.metadata,
         },
-      };
-
-      logger.info("✅ StripeService: Payment intent created", {
-        traceId,
-        paymentIntentId: mockPaymentIntent.id,
-        amount: mockPaymentIntent.amount,
       });
 
-      return mockPaymentIntent;
+      logger.info("✅ Stripe payment intent created successfully", {
+        traceId,
+        paymentIntentId: paymentIntent.id,
+        clientSecret: paymentIntent.client_secret,
+        amount: paymentIntent.amount,
+        status: paymentIntent.status,
+      });
+
+      return {
+        id: paymentIntent.id,
+        clientSecret: paymentIntent.client_secret || "",
+        amount: paymentIntent.amount / 100, // Convert back from cents
+        currency: paymentData.currency,
+        status: paymentIntent.status,
+        metadata: paymentIntent.metadata || {},
+      };
     } catch (error) {
-      logger.error("❌ StripeService: Error creating payment intent", {
+      logger.error("❌ Error creating Stripe payment intent", {
         traceId,
         error: error instanceof Error ? error.message : "Unknown error",
         paymentData: {
@@ -88,7 +103,9 @@ export class StripeService {
   /**
    * Retrieve a Payment Intent from Stripe
    */
-  async getPaymentIntent(paymentIntentId: string): Promise<any> {
+  async getPaymentIntent(
+    paymentIntentId: string
+  ): Promise<Stripe.PaymentIntent> {
     const traceId = `stripe_get_intent_${Date.now()}`;
 
     try {
@@ -97,29 +114,19 @@ export class StripeService {
         paymentIntentId,
       });
 
-      // TODO: Implement actual Stripe retrieval
-      // const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+      const paymentIntent =
+        await this.stripe.paymentIntents.retrieve(paymentIntentId);
 
-      // Mock response for now
-      const mockPaymentIntent = {
-        id: paymentIntentId,
-        amount: 5000, // $50.00
-        currency: "usd",
-        status: "succeeded",
-        metadata: {
-          bookingId: "mock_booking_id",
-        },
-      };
-
-      logger.info("✅ StripeService: Payment intent retrieved", {
+      logger.info("✅ Payment intent retrieved successfully", {
         traceId,
-        paymentIntentId,
-        status: mockPaymentIntent.status,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount,
       });
 
-      return mockPaymentIntent;
+      return paymentIntent;
     } catch (error) {
-      logger.error("❌ StripeService: Error retrieving payment intent", {
+      logger.error("❌ Error retrieving payment intent", {
         traceId,
         paymentIntentId,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -129,13 +136,90 @@ export class StripeService {
   }
 
   /**
-   * Create a refund in Stripe
+   * Confirm a Payment Intent
+   */
+  async confirmPaymentIntent(
+    paymentIntentId: string,
+    paymentMethodId?: string
+  ): Promise<Stripe.PaymentIntent> {
+    const traceId = `stripe_confirm_intent_${Date.now()}`;
+
+    try {
+      logger.info("✅ StripeService: Confirming payment intent", {
+        traceId,
+        paymentIntentId,
+        hasPaymentMethod: !!paymentMethodId,
+      });
+
+      const confirmParams: Stripe.PaymentIntentConfirmParams = {};
+      if (paymentMethodId) {
+        confirmParams.payment_method = paymentMethodId;
+      }
+
+      const paymentIntent = await this.stripe.paymentIntents.confirm(
+        paymentIntentId,
+        confirmParams
+      );
+
+      logger.info("✅ Payment intent confirmed successfully", {
+        traceId,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+      });
+
+      return paymentIntent;
+    } catch (error) {
+      logger.error("❌ Error confirming payment intent", {
+        traceId,
+        paymentIntentId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a Payment Intent
+   */
+  async cancelPaymentIntent(
+    paymentIntentId: string
+  ): Promise<Stripe.PaymentIntent> {
+    const traceId = `stripe_cancel_intent_${Date.now()}`;
+
+    try {
+      logger.info("🚫 StripeService: Canceling payment intent", {
+        traceId,
+        paymentIntentId,
+      });
+
+      const paymentIntent =
+        await this.stripe.paymentIntents.cancel(paymentIntentId);
+
+      logger.info("✅ Payment intent canceled successfully", {
+        traceId,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+      });
+
+      return paymentIntent;
+    } catch (error) {
+      logger.error("❌ Error canceling payment intent", {
+        traceId,
+        paymentIntentId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a refund
    */
   async createRefund(
     paymentIntentId: string,
     amount?: number,
     reason?: string
-  ): Promise<any> {
+  ): Promise<Stripe.Refund> {
     const traceId = `stripe_create_refund_${Date.now()}`;
 
     try {
@@ -146,32 +230,30 @@ export class StripeService {
         reason,
       });
 
-      // TODO: Implement actual Stripe refund creation
-      // const refund = await this.stripe.refunds.create({
-      //   payment_intent: paymentIntentId,
-      //   amount: amount ? Math.round(amount * 100) : undefined,
-      //   reason: reason,
-      // });
-
-      // Mock response for now
-      const mockRefund = {
-        id: `re_mock_${Date.now()}`,
-        amount: amount || 5000,
-        currency: "usd",
+      const refundParams: Stripe.RefundCreateParams = {
         payment_intent: paymentIntentId,
-        status: "succeeded",
-        reason: reason || "requested_by_customer",
       };
 
-      logger.info("✅ StripeService: Refund created", {
+      if (amount) {
+        refundParams.amount = Math.round(amount * 100); // Convert to cents
+      }
+
+      if (reason) {
+        refundParams.reason = reason as Stripe.RefundCreateParams.Reason;
+      }
+
+      const refund = await this.stripe.refunds.create(refundParams);
+
+      logger.info("✅ Refund created successfully", {
         traceId,
-        refundId: mockRefund.id,
-        amount: mockRefund.amount,
+        refundId: refund.id,
+        amount: refund.amount,
+        status: refund.status,
       });
 
-      return mockRefund;
+      return refund;
     } catch (error) {
-      logger.error("❌ StripeService: Error creating refund", {
+      logger.error("❌ Error creating refund", {
         traceId,
         paymentIntentId,
         amount,
@@ -182,7 +264,7 @@ export class StripeService {
   }
 
   /**
-   * Verify Stripe webhook signature
+   * Verify webhook signature and construct event
    */
   verifyWebhookSignature(
     payload: string,
@@ -193,36 +275,30 @@ export class StripeService {
     try {
       logger.info("🔐 StripeService: Verifying webhook signature", {
         traceId,
+        hasPayload: !!payload,
         hasSignature: !!signature,
-        payloadLength: payload.length,
+        webhookSecretConfigured: !!this.webhookSecret,
       });
 
-      // TODO: Implement actual webhook verification
-      // const event = this.stripe.webhooks.constructEvent(
-      //   payload,
-      //   signature,
-      //   this.webhookSecret
-      // );
+      if (!this.webhookSecret) {
+        throw new Error("Webhook secret not configured");
+      }
 
-      // Mock event for now
-      const mockEvent: StripeWebhookEvent = {
-        id: `evt_mock_${Date.now()}`,
-        type: "payment_intent.succeeded",
-        data: {
-          object: JSON.parse(payload),
-        },
-        created: Math.floor(Date.now() / 1000),
-      };
+      const event = this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        this.webhookSecret
+      ) as StripeWebhookEvent;
 
-      logger.info("✅ StripeService: Webhook signature verified", {
+      logger.info("✅ Webhook signature verified successfully", {
         traceId,
-        eventType: mockEvent.type,
-        eventId: mockEvent.id,
+        eventType: event.type,
+        eventId: event.id,
       });
 
-      return mockEvent;
+      return event;
     } catch (error) {
-      logger.error("❌ StripeService: Webhook signature verification failed", {
+      logger.error("❌ Error verifying webhook signature", {
         traceId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -231,38 +307,74 @@ export class StripeService {
   }
 
   /**
-   * Cancel a Payment Intent
+   * Create a customer
    */
-  async cancelPaymentIntent(paymentIntentId: string): Promise<any> {
-    const traceId = `stripe_cancel_intent_${Date.now()}`;
+  async createCustomer(
+    email: string,
+    name?: string,
+    metadata?: Record<string, string>
+  ): Promise<Stripe.Customer> {
+    const traceId = `stripe_create_customer_${Date.now()}`;
 
     try {
-      logger.info("🚫 StripeService: Canceling payment intent", {
+      logger.info("👤 StripeService: Creating customer", {
         traceId,
-        paymentIntentId,
+        email,
+        name,
       });
 
-      // TODO: Implement actual cancellation
-      // const paymentIntent = await this.stripe.paymentIntents.cancel(paymentIntentId);
-
-      // Mock response for now
-      const mockCancelledIntent = {
-        id: paymentIntentId,
-        status: "canceled",
-        amount: 5000,
-        currency: "usd",
+      const customerParams: Stripe.CustomerCreateParams = {
+        email,
       };
 
-      logger.info("✅ StripeService: Payment intent canceled", {
+      if (name) {
+        customerParams.name = name;
+      }
+
+      if (metadata) {
+        customerParams.metadata = metadata;
+      }
+
+      const customer = await this.stripe.customers.create(customerParams);
+
+      logger.info("✅ Customer created successfully", {
         traceId,
-        paymentIntentId,
+        customerId: customer.id,
+        email: customer.email,
       });
 
-      return mockCancelledIntent;
+      return customer;
     } catch (error) {
-      logger.error("❌ StripeService: Error canceling payment intent", {
+      logger.error("❌ Error creating customer", {
         traceId,
-        paymentIntentId,
+        email,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get Stripe account balance
+   */
+  async getBalance(): Promise<Stripe.Balance> {
+    const traceId = `stripe_get_balance_${Date.now()}`;
+
+    try {
+      logger.info("💰 StripeService: Retrieving account balance", { traceId });
+
+      const balance = await this.stripe.balance.retrieve();
+
+      logger.info("✅ Account balance retrieved successfully", {
+        traceId,
+        available: balance.available,
+        pending: balance.pending,
+      });
+
+      return balance;
+    } catch (error) {
+      logger.error("❌ Error retrieving account balance", {
+        traceId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;

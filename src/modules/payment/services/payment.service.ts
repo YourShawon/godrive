@@ -55,14 +55,11 @@ export class PaymentService implements IPaymentService {
         },
       });
 
-      // Step 3: Update payment with Stripe Payment Intent ID (commented out for testing)
-      // const updatedPayment = await this.paymentRepository.update(payment.id, {
-      //   providerPaymentId: paymentIntent.id,
-      //   status: PaymentStatus.PENDING,
-      // });
-
-      // For now, use the initial payment record
-      const updatedPayment = payment;
+      // Step 3: Update payment with Stripe Payment Intent ID
+      const updatedPayment = await this.paymentRepository.update(payment.id, {
+        providerPaymentId: paymentIntent.id,
+        status: PaymentStatus.PENDING,
+      });
 
       logger.info("✅ PaymentService: Payment intent created successfully", {
         traceId,
